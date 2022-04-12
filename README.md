@@ -26,7 +26,7 @@ python -m src._server
 curl -X POST "http://127.0.0.1:8000/solve/" \
   -H  "accept: application/json" \
   -H  "Content-Type: application/json" \
-  --data "@data/example_request.json"
+  --data "@data/small_example.json"
 ```
 
 # Connect to our orderbook:

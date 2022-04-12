@@ -31,6 +31,10 @@ class Token:
         """Convert to string."""
         return self.value
 
+    def __repr__(self) -> str:
+        """Convert to string."""
+        return self.__str__()
+
     def __hash__(self) -> int:
         """Hash of token."""
         return hash(self.value)

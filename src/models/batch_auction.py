@@ -410,8 +410,7 @@ class BatchAuction:
 
             for order in self.orders:
                 pair = (order.sell_token, order.buy_token)
-                rev_pair = (pair[1], pair[0])
-                if pair in tokenpairs or rev_pair in tokenpairs:
+                if pair in tokenpairs:
                     orders.append(order)
 
         # Get orders that involve given token.

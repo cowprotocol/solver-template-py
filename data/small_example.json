@@ -33,10 +33,29 @@
     "0": {
       "sell_token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
       "buy_token": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
-      "sell_amount": "999710011596068",
-      "buy_amount": "6638431174154498494",
+      "sell_amount": "12",
+      "buy_amount": "100",
       "allow_partial_fill": false,
       "is_sell_order": true,
+      "fee": {
+        "amount": "115995469750",
+        "token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"
+      },
+      "cost": {
+        "amount": "321627750000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "is_liquidity_order": false,
+      "mandatory": false,
+      "has_atomic_execution": false
+    },
+    "1": {
+      "sell_token": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
+      "buy_token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+      "sell_amount": "100",
+      "buy_amount": "10",
+      "allow_partial_fill": false,
+      "is_sell_order": false,
       "fee": {
         "amount": "115995469750",
         "token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"

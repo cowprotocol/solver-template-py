@@ -53,8 +53,10 @@ def solve_auction(
     print("Received Batch Auction", batch.name)
     print("Parameters Supplied", params)
 
+    # batch.solve()
+
     # 1. Solve BatchAuction: update batch_auction with
-    # solution = batch_auction.solve()
+    # solution = batch.solve()
     # 2. Validate solution
     # valid = Validation.is_valid_solution(solution)
 
