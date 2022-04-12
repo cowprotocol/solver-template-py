@@ -1,8 +1,6 @@
 """Representation of an exchange rate between two tokens."""
 from __future__ import annotations
 
-from decimal import Decimal
-
 from src.models.token import Token, TokenBalance
 from src.models.types import NumericType
 
@@ -56,7 +54,7 @@ class ExchangeRate:
             assert isinstance(token_price, tuple) and len(token_price) == 2
             token, price = token_price
             assert isinstance(token, Token)
-            assert isinstance(price, (int, float, Decimal)) and price > 0
+            assert price > 0
 
             balances.append(TokenBalance(price, token))
 

@@ -258,14 +258,13 @@ class Uniswap:
                 "exec_plan": exec_plan,
             }
 
-        amm_dict = {
+        return {
             "kind": str(self.kind),
             "reserves": reserves,
             "cost": cost,
             "fee": decimal_to_str(self.fee),
             "execution": execution,
         }
-        return amm_dict
 
     ####################
     #  ACCESS METHODS  #
