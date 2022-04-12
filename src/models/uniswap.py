@@ -361,15 +361,11 @@ class Uniswap:
 
     def balance(self, token: Token) -> TokenBalance:
         """Get the current balance of the given token.
-
         Args:
             token: A Token.
 
-        Returns:
-            The TokenBalance of the given token.
-
+        Returns: The TokenBalance of the given token.
         """
-        assert isinstance(token, Token)
 
         if token == self.balance1.token:
             return self.balance1
@@ -377,14 +373,12 @@ class Uniswap:
         if token == self.balance2.token:
             return self.balance2
 
-        raise ValueError(f"Token {token} is not part of Uniswap {self.pool_id}!")
+        raise ValueError(f"Token {token} is not part of AMM {self.pool_id}!")
 
     def execute(
         self,
         b1_update: NumericType,
         b2_update: NumericType,
-        price1: float | Decimal | None = None,
-        price2: float | Decimal | None = None,
         amount_tol: Decimal = Decimal("1e-8"),
     ) -> None:
         """Execute the uniswap at given amounts.
@@ -392,14 +386,10 @@ class Uniswap:
         Args:
             b1_update: Traded amount of token1.
             b2_update: Traded amount of token2.
-            price1: Price of token1.
-            price2: Price of token2.
             amount_tol: Accepted violation of the limit buy/sell amount constraints.
         """
         assert isinstance(b1_update, (int, float, Decimal))
         assert isinstance(b2_update, (int, float, Decimal))
-        assert isinstance(price1, (float, Decimal)) and price1 >= 0 or price1 is None
-        assert isinstance(price2, (float, Decimal)) and price2 >= 0 or price2 is None
 
         token1 = self.balance1.token
         token2 = self.balance2.token
@@ -408,9 +398,12 @@ class Uniswap:
         balance_update2 = TokenBalance(b2_update, token2)
 
         # if any amount is very small, set to zero.
-        if abs(balance_update1) <= TokenBalance(amount_tol, token1) or abs(
-            balance_update2
-        ) <= TokenBalance(amount_tol, token2):
+        if any(
+            [
+                abs(balance_update1) <= TokenBalance(amount_tol, token1),
+                abs(balance_update2) <= TokenBalance(amount_tol, token2),
+            ]
+        ):
             balance_update1 = TokenBalance(0.0, token1)
             balance_update2 = TokenBalance(0.0, token2)
 

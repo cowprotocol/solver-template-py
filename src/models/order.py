@@ -41,7 +41,6 @@ class ObjectiveValue:
 
 class Order:
     """Representation of a limit order.
-
     An order is specified with 3 bounds:
         * maximum amount of buy-token to be bought
         * maximum amount of sell-token to be sold
@@ -50,7 +49,6 @@ class Order:
     Depending on which of the bounds are set,
     the order represents a classical limit {buy|sell} order,
     a cost-bounded {buy|sell} order or a {buy|sell} market order.
-
     """
 
     def __init__(
@@ -88,12 +86,11 @@ class Order:
             cost: Cost of including the order in the solution.
             exec_buy_amount: Matched amount of buy-token in solution.
             exec_sell_amount: Matched amount of sell-token in solution.
-
         """
         # Consistency checks.
         assert all(isinstance(t, Token) for t in [buy_token, sell_token])
         if buy_token == sell_token:
-            raise ValueError("Sell- and buy-token cannot be equal!")
+            raise ValueError("sell- and buy-token cannot be equal!")
 
         self.order_id = order_id
 
@@ -129,26 +126,12 @@ class Order:
 
     @classmethod
     def from_dict(cls, order_id: str, order_data: OrderSerializedType) -> Order:
-        """Read Order object from order data dict.
-
-        Note: Currently, the smart contract format only supports limit sell orders.
-
-        Args:
-            order_id: pool_id of order
-            order_data: Dict of order data.
-
-        Kwargs:
-            max_len_order_id: Maximum length of order pool_id (for leading zeroes).
-
-        Returns:
-            An Order object.
-
         """
-        if not isinstance(order_id, str):
-            raise ValueError(f"Order pool_id must be a string, not <{type(order_id)}>!")
-
-        if not isinstance(order_data, dict):
-            raise ValueError(f"Order data must be a dict, not <{type(order_data)}>!")
+        Read Order object from order data dict.
+        Args:
+            order_id: ID of order
+            order_data: Dict of order data.
+        """
 
         attr_mandatory = [
             "sell_token",
@@ -171,7 +154,7 @@ class Order:
 
         if not (buy_amount > 0 and sell_amount > 0):
             raise ValueError(
-                f"Order buy {buy_amount} and sell {sell_amount} amounts must be positive!"
+                f"buy {buy_amount} and sell {sell_amount} amounts must be positive!"
             )
 
         limit_xrate = XRate(
@@ -425,11 +408,10 @@ class Order:
             xrate_tol: Accepted violation of the limit exchange rate constraint
                        per unit of buy token (default: 1e-6).
         """
-        # We don't check types because type mypy check that.
         assert buy_amount_value >= -amount_tol
         assert sell_amount_value >= -amount_tol
-        assert buy_token_price is None or buy_token_price >= 0
-        assert sell_token_price is None or sell_token_price >= 0
+        assert buy_token_price >= 0
+        assert sell_token_price >= 0
 
         buy_token, sell_token = self.buy_token, self.sell_token
 
@@ -470,9 +452,12 @@ class Order:
             sell_amount = min(sell_amount, ymax)
 
         # (c) if any amount is very small, set to zero.
-        if buy_amount <= TokenBalance(
-            amount_tol, buy_token
-        ) or sell_amount <= TokenBalance(amount_tol, sell_token):
+        if any(
+            [
+                buy_amount <= TokenBalance(amount_tol, buy_token),
+                sell_amount <= TokenBalance(amount_tol, sell_token),
+            ]
+        ):
             buy_amount = TokenBalance(0.0, buy_token)
             sell_amount = TokenBalance(0.0, sell_token)
 
