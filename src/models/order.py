@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Optional, Any, Mapping
 
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.objective_value import ObjectiveValue
@@ -42,7 +42,7 @@ class Order:
         has_atomic_execution: bool = False,
         fee: Optional[TokenBalance] = None,
         cost: Optional[TokenBalance] = None,
-        **kwargs: dict[str, Any],
+        **kwargs: Mapping[str, Any],
     ) -> None:
         """Initialize.
 
@@ -100,8 +100,8 @@ class Order:
         self._fee = fee
         self._cost = cost
 
-        self._exec_buy_amount = None
-        self._exec_sell_amount = None
+        self._exec_buy_amount = TokenBalance.default(self.buy_token)
+        self._exec_sell_amount = TokenBalance.default(self.sell_token)
 
         self.exec_rate: Optional[XRate] = None
         self.exec_volume: Optional[Decimal] = None
@@ -145,7 +145,7 @@ class Order:
 
         allow_partial_fill = bool(data["allow_partial_fill"])
 
-        kwargs = {
+        kwargs: Mapping = {
             "fee": TokenBalance.parse(data.get("fee"), allow_none=True),
             "cost": TokenBalance.parse(data.get("cost"), allow_none=True),
         }
@@ -255,11 +255,14 @@ class Order:
     @property
     def exec_buy_amount(self) -> TokenBalance:
         """Return the executed buy amount."""
-        return self._exec_buy_amount
+        return self._exec_buy_amount or TokenBalance.default(self.buy_token)
 
     @exec_buy_amount.setter
     def exec_buy_amount(self, value: Optional[Amount]) -> None:
-        self._exec_buy_amount = TokenBalance.parse_amount(value, self.buy_token)
+        update = TokenBalance.parse_amount(value, self.buy_token)
+        if update is not None:
+            self._exec_buy_amount = update
+        raise ValueError("Cant update exec_buy_amount to None")
 
     @property
     def exec_sell_amount(self) -> TokenBalance:
@@ -267,12 +270,33 @@ class Order:
         return self._exec_sell_amount
 
     @exec_sell_amount.setter
-    def exec_sell_amount(self, value: Optional[Amount]) -> None:
-        self._exec_sell_amount = TokenBalance.parse_amount(value, self.sell_token)
+    def exec_sell_amount(self, value: Amount) -> None:
+        update = TokenBalance.parse_amount(value, self.sell_token)
+        if update:
+            self._exec_sell_amount = update
+        raise ValueError("Cant update exec_sell_amount to None")
 
     #####################
     #  UTILITY METHODS  #
     #####################
+
+    def overlaps(self, other: Order) -> bool:
+        """
+        Determine if one order can be matched with another.
+        opposite {buy|sell} tokens and matching prices
+        """
+        token_conditions = [
+            self.buy_token == other.sell_token,
+            self.sell_token == other.buy_token,
+        ]
+        if not all(token_conditions):
+            return False
+
+        common_token = self.sell_token
+
+        self_limit = self.max_limit.convert_unit(common_token)
+        other_limit = other.max_limit.convert_unit(common_token)
+        return self_limit < other_limit
 
     def is_executable(self, xrate: XRate, xrate_tol: Decimal = Decimal("1e-6")) -> bool:
         """Determine if the order limit price satisfies a given market rate.
@@ -325,12 +349,7 @@ class Order:
         assert sell_amount_value >= -amount_tol
         assert buy_token_price >= 0
         assert sell_token_price >= 0
-        print(
-            "BUY AMOUNT",
-            decimal_to_str(buy_amount_value),
-            "SELL AMOUNT",
-            decimal_to_str(sell_amount_value),
-        )
+
         buy_token, sell_token = self.buy_token, self.sell_token
 
         buy_amount = TokenBalance(buy_amount_value, buy_token)
@@ -543,6 +562,7 @@ def validate_execution(
             exec_amt.balance >= 0,
             max_amt and exec_amt <= max_amt,
         ]
+        logging.debug(f"Validity Conditions met {validity_conditions}")
         return all(validity_conditions)
 
-    return exec_amt is None
+    return exec_amt is None or max_amt is None

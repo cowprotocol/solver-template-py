@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Optional, Any, Mapping
 
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.token import Token, TokenBalance, Amount
@@ -33,7 +33,7 @@ class Uniswap:
         cost: Optional[TokenBalance] = None,
         mandatory: bool = False,
         kind: AMMKind = AMMKind.UNISWAP,
-        **kwargs: dict[str, Any],
+        **kwargs: Mapping[str, Any],
     ):
         """Initialize.
 
@@ -100,13 +100,6 @@ class Uniswap:
             A Uniswap object.
 
         """
-        # Validate Input
-        if not isinstance(amm_id, str):
-            raise ValueError(f"AMM pool_id must be a string, not {type(amm_id)}!")
-
-        if not isinstance(amm_data, dict):
-            raise ValueError(f"AMM data must be a dict, not {type(amm_data)}!")
-
         attr_mandatory = ["kind", "reserves", "fee"]
 
         for attr in attr_mandatory:
@@ -171,12 +164,18 @@ class Uniswap:
 
         fee = Decimal(amm_data["fee"])
 
-        kwargs = {
-            "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
-            "kind": kind,
-        }
+        kwargs: Mapping
         if input_weight:
-            kwargs["input_weight"] = input_weight
+            kwargs = {
+                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
+                "kind": kind,
+                "input_weight": input_weight,
+            }
+        else:
+            kwargs = {
+                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
+                "kind": kind,
+            }
 
         return Uniswap(amm_id, balance1, balance2, fee, **kwargs)
 
@@ -325,9 +324,11 @@ class Uniswap:
         return self._balance_update1
 
     @balance_update1.setter
-    def balance_update1(self, value: Optional[Amount]) -> None:
-        # TODO - this should be update
-        self._balance_update1 = TokenBalance.parse_amount(value, self.balance1.token)
+    def balance_update1(self, value: Amount) -> None:
+        update = TokenBalance.parse_amount(value, self.balance1.token)
+        if update is not None:
+            self._balance_update1 = update
+        logging.warning("Attempted to update with None, left as is.")
 
     @property
     def balance_update2(self) -> TokenBalance:
@@ -336,7 +337,10 @@ class Uniswap:
 
     @balance_update2.setter
     def balance_update2(self, value: Optional[Amount]) -> None:
-        self._balance_update2 = TokenBalance.parse_amount(value, self.balance2.token)
+        update = TokenBalance.parse_amount(value, self.balance2.token)
+        if update is not None:
+            self._balance_update2 = update
+        logging.warning("Attempted to update with None, left as is.")
 
     @property
     def exec_plan_coords(self) -> ExecPlanCoords:

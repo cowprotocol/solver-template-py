@@ -73,29 +73,29 @@ class BatchAuction:
         self.trading_surplus = float("nan")
 
     @classmethod
-    def from_dict(cls, inst_dict: dict, inst_name: str) -> BatchAuction:
+    def from_dict(cls, data: dict, name: str) -> BatchAuction:
         """Read a batch auction instance from a python dictionary.
 
         Args:
-            inst_dict: Python dict to be read.
-            inst_name: Instance name.
+            data: Python dict to be read.
+            name: Instance name.
 
         Returns:
             The instance.
 
         """
-        if not isinstance(inst_dict, dict):
-            raise ValueError(f"Instance data must be a dict, not {type(inst_dict)}!")
+        if not isinstance(data, dict):
+            raise ValueError(f"Instance data must be a dict, not {type(data)}!")
 
         for key in ["tokens", "orders"]:
-            if key not in inst_dict:
+            if key not in data:
                 raise ValueError(f"Mandatory field '{key}' missing in instance data!")
 
-        tokens = load_tokens(inst_dict["tokens"])
-        metadata = load_metadata(inst_dict.get("metadata", {}))
-        prices = load_prices(inst_dict.get("prices", {}))
-        orders = load_orders(inst_dict["orders"])
-        uniswaps = load_amms(inst_dict.get("amms", {}))
+        tokens = load_tokens(data["tokens"])
+        metadata = load_metadata(data.get("metadata", {}))
+        prices = load_prices(data.get("prices", {}))
+        orders = load_orders(data["orders"])
+        uniswaps = load_amms(data.get("amms", {}))
         ref_token = select_ref_token(tokens)
 
         log_str = "Loaded tokens:"
@@ -120,7 +120,7 @@ class BatchAuction:
             ref_token,
             prices=prices,
             metadata=metadata,
-            name=inst_name,
+            name=name,
         )
 
     #######################################
@@ -287,13 +287,31 @@ class BatchAuction:
     #  SOLUTION PROCESSING METHODS  #
     #################################
 
+    def solve(self) -> None:
+        """
+        Find an execution for the batch
+        """
+        orders = self.orders
+        for i in range(len(orders) - 1):
+            for j in range(i + 1, len(orders)):
+                order_i, order_j = orders[i], orders[j]
+                if order_i.overlaps(order_j):
+                    order_i.execute(
+                        buy_amount_value=order_j.sell_amount,
+                        sell_amount_value=order_i.sell_amount,
+                    )
+                    order_j.execute(
+                        buy_amount_value=order_i.sell_amount,
+                        sell_amount_value=order_j.sell_amount,
+                    )
+
     def evaluate_objective_functions(self) -> Optional[ObjectiveValue]:
         """Evaluates and returns a Batches Objective"""
         ref_token = self.ref_token
         if not ref_token or not self.prices.get(ref_token):
             return None
 
-        res = ObjectiveValue.zero(ref_token, self.prices.get(ref_token))
+        res = ObjectiveValue.zero(ref_token, self.prices[ref_token])
 
         if not self.has_solution():
             return res
@@ -351,7 +369,7 @@ class BatchAuction:
         orders = self.orders
         if sort_by_limit_price:
             orders.sort(
-                key=lambda o: o.get_max_limit().convert_unit(o.sell_token).as_decimal()
+                key=lambda o: o.max_limit.convert_unit(o.sell_token).as_decimal()
             )
 
         for order in orders:
