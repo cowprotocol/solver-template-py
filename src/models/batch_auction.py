@@ -9,8 +9,6 @@ import logging
 from decimal import Decimal
 from typing import Any, Optional
 
-import inflection
-
 from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
     Token,
@@ -569,7 +567,6 @@ def load_tokens(tokens_serialized: dict) -> TokenDict:
             for k, val in token_info.items():
                 if val is None:
                     continue
-                k = inflection.underscore(k)
                 try:
                     # Convert to str first to avoid float-precision artifacts:
                     # Decimal(0.1)   -> Decimal('0.10000000000000000555...')

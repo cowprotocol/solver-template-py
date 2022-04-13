@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional, Any
 
-import inflection
-
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.token import Token, TokenBalance, Amount
 from src.models.types import NumericType
@@ -56,16 +54,14 @@ class Order:
         order_id: str,
         buy_token: Token,
         sell_token: Token,
-        max_limit: XRate,
-        max_buy_amount: Optional[Amount] = None,
-        max_sell_amount: Optional[Amount] = None,
+        buy_amount: Decimal,
+        sell_amount: Decimal,
+        is_sell_order: bool,
         allow_partial_fill: bool = False,
         is_liquidity_order: bool = False,
         has_atomic_execution: bool = False,
         fee: Optional[TokenBalance] = None,
         cost: Optional[TokenBalance] = None,
-        exec_buy_amount: Optional[Amount] = None,
-        exec_sell_amount: Optional[Amount] = None,
         **kwargs: dict[str, Any],
     ) -> None:
         """Initialize.
@@ -95,8 +91,10 @@ class Order:
         self.order_id = order_id
 
         # Init order data.
-        self._buy_token = buy_token
-        self._sell_token = sell_token
+        self.buy_token = buy_token
+        self.sell_token = sell_token
+        self.buy_amount = buy_amount
+        self.sell_amount = sell_amount
 
         # Store fill-or-kill property.
         self.allow_partial_fill = allow_partial_fill
@@ -107,15 +105,23 @@ class Order:
         # Store atomic execution property.
         self.has_atomic_execution = has_atomic_execution
 
-        self._max_buy_amount = TokenBalance.parse_amount(max_buy_amount, buy_token)
-        self._max_sell_amount = TokenBalance.parse_amount(max_sell_amount, sell_token)
-        self._max_limit = self._parse_limit(max_limit)
+        self.max_buy_amount = None
+        self.max_sell_amount = None
+        if is_sell_order:
+            self.max_sell_amount = TokenBalance.parse_amount(sell_amount, sell_token)
+        else:
+            self.max_buy_amount = TokenBalance.parse_amount(buy_amount, buy_token)
+
+        limit_xrate = XRate(
+            TokenBalance(sell_amount, sell_token), TokenBalance(buy_amount, buy_token)
+        )
+        self.max_limit = limit_xrate
 
         self._fee = fee
         self._cost = cost
 
-        self._exec_buy_amount = TokenBalance.parse_amount(exec_buy_amount, buy_token)
-        self._exec_sell_amount = TokenBalance.parse_amount(exec_sell_amount, sell_token)
+        self._exec_buy_amount = None
+        self._exec_sell_amount = None
 
         self.exec_rate: Optional[XRate] = None
         self.exec_volume: Optional[Decimal] = None
@@ -125,15 +131,15 @@ class Order:
             setattr(self, k, val)
 
     @classmethod
-    def from_dict(cls, order_id: str, order_data: OrderSerializedType) -> Order:
+    def from_dict(cls, order_id: str, data: OrderSerializedType) -> Order:
         """
         Read Order object from order data dict.
         Args:
             order_id: ID of order
-            order_data: Dict of order data.
+            data: Dict of order data.
         """
 
-        attr_mandatory = [
+        required_attributes = [
             "sell_token",
             "buy_token",
             "sell_amount",
@@ -142,60 +148,35 @@ class Order:
             "allow_partial_fill",
         ]
 
-        for attr in attr_mandatory:
-            if attr not in order_data:
+        for attr in required_attributes:
+            if attr not in data:
                 raise ValueError(f"Missing field '{attr}' in order <{order_id}>!")
 
-        buy_token = Token(order_data["buy_token"])
-        sell_token = Token(order_data["sell_token"])
+        buy_token = Token(data["buy_token"])
+        sell_token = Token(data["sell_token"])
 
-        buy_amount = Decimal(order_data["buy_amount"])
-        sell_amount = Decimal(order_data["sell_amount"])
+        buy_amount = Decimal(data["buy_amount"])
+        sell_amount = Decimal(data["sell_amount"])
 
         if not (buy_amount > 0 and sell_amount > 0):
             raise ValueError(
                 f"buy {buy_amount} and sell {sell_amount} amounts must be positive!"
             )
 
-        limit_xrate = XRate(
-            TokenBalance(sell_amount, sell_token), TokenBalance(buy_amount, buy_token)
-        )
-
-        allow_partial_fill = bool(order_data["allow_partial_fill"])
-
-        is_sell_order = bool(order_data["is_sell_order"])
-        if is_sell_order:
-            max_buy_amount = None
-            max_sell_amount = sell_amount
-        else:
-            max_buy_amount = buy_amount
-            max_sell_amount = None
+        allow_partial_fill = bool(data["allow_partial_fill"])
 
         kwargs = {
-            inflection.underscore(k): v
-            for k, v in order_data.items()
-            if k not in attr_mandatory
+            "fee": TokenBalance.parse(data.get("fee"), allow_none=True),
+            "cost": TokenBalance.parse(data.get("cost"), allow_none=True),
         }
-        kwargs["fee"] = TokenBalance.parse(
-            order_data.get("fee"), allow_negative=False, allow_none=True
-        )
-        kwargs["cost"] = TokenBalance.parse(
-            order_data.get("cost"), allow_negative=False, allow_none=True
-        )
-        kwargs["exec_buy_amount"] = TokenBalance.parse(
-            order_data.get("exec_buy_amount"), allow_none=True
-        )
-        kwargs["exec_sell_amount"] = TokenBalance.parse(
-            order_data.get("exec_sell_amount"), allow_none=True
-        )
 
         return Order(
             order_id,
             buy_token,
             sell_token,
-            max_buy_amount=max_buy_amount,
-            max_sell_amount=max_sell_amount,
-            max_limit=limit_xrate,
+            buy_amount,
+            sell_amount,
+            is_sell_order=bool(data["is_sell_order"]),
             allow_partial_fill=allow_partial_fill,
             **kwargs,
         )
@@ -204,28 +185,15 @@ class Order:
         """Return Order object as dictionary."""
         # Currently, only limit buy or sell orders be handled.
 
-        if self.max_buy_amount is None:
-            sell_amount = (
-                self.max_sell_amount.as_decimal()
-                if self.max_sell_amount
-                else Decimal(0)
-            )
-            buy_amount = self.max_limit.convert(self.max_sell_amount).as_decimal()
-            is_sell_order = True
-        else:
-            buy_amount = (
-                self.max_buy_amount.as_decimal() if self.max_buy_amount else Decimal(0)
-            )
-            sell_amount = self.max_limit.convert(self.max_buy_amount).as_decimal()
-            is_sell_order = False
-
         order_dict = {
             "sell_token": str(self.sell_token),
             "buy_token": str(self.buy_token),
-            "sell_amount": decimal_to_str(sell_amount),
-            "buy_amount": decimal_to_str(buy_amount),
+            "sell_amount": decimal_to_str(self.sell_amount),
+            "buy_amount": decimal_to_str(self.buy_amount),
             "allow_partial_fill": self.allow_partial_fill,
-            "is_sell_order": is_sell_order,
+            "is_sell_order": self.is_sell_order,
+            "exec_sell_amount": "0",
+            "exec_buy_amount": "0",
         }
 
         if self.fee is not None:
@@ -280,43 +248,9 @@ class Order:
     ####################
 
     @property
-    def buy_token(self) -> Token:
-        """Return the buy-token."""
-        return self._buy_token
-
-    @property
-    def sell_token(self) -> Token:
-        """Return the sell-token."""
-        return self._sell_token
-
-    @property
     def tokens(self) -> set[Token]:
         """Return the buy and sell tokens."""
         return {self.buy_token, self.sell_token}
-
-    @property
-    def max_buy_amount(self) -> Optional[TokenBalance]:
-        """Return the maximum buy amount."""
-        return self._max_buy_amount
-
-    @property
-    def max_sell_amount(self) -> Optional[TokenBalance]:
-        """Return the maximum sell amount."""
-        return self._max_sell_amount
-
-    def get_max_limit(self) -> XRate:
-        """Return the max_limit as XRate object."""
-
-        return XRate(
-            TokenBalance(1.0, self.buy_token),
-            TokenBalance(self._max_limit, self.sell_token),
-        )
-
-    def set_max_limit(self, xrate: XRate) -> None:
-        """Set the max_limit as XRate object."""
-        self._max_limit = self._parse_limit(xrate)
-
-    max_limit = property(get_max_limit, set_max_limit)
 
     @property
     def is_sell_order(self) -> bool:
@@ -385,7 +319,7 @@ class Order:
 
         assert xrate_tol >= 0
         converted_buy = xrate.convert_unit(buy_token)
-        converted_sell = max_limit.convert_unit(sell_token)
+        converted_sell = max_limit.convert_unit(buy_token)
         return bool(converted_buy <= (converted_sell * (1 + xrate_tol)))
 
     def execute(
@@ -412,7 +346,12 @@ class Order:
         assert sell_amount_value >= -amount_tol
         assert buy_token_price >= 0
         assert sell_token_price >= 0
-
+        print(
+            "BUY AMOUNT",
+            decimal_to_str(buy_amount_value),
+            "SELL AMOUNT",
+            decimal_to_str(sell_amount_value),
+        )
         buy_token, sell_token = self.buy_token, self.sell_token
 
         buy_amount = TokenBalance(buy_amount_value, buy_token)
@@ -622,12 +561,12 @@ def validate_execution(
     exec_amt: Optional[TokenBalance], token: Token, max_amt: Optional[TokenBalance]
 ) -> bool:
     """Similar method used to validate both executed buy and sell amounts for order"""
-    assert isinstance(exec_amt, TokenBalance)
-    assert isinstance(max_amt, TokenBalance)
+    if isinstance(exec_amt, TokenBalance) and isinstance(max_amt, TokenBalance):
+        validity_conditions = [
+            exec_amt.token == token,
+            exec_amt.balance >= 0,
+            max_amt and exec_amt <= max_amt,
+        ]
+        return all(validity_conditions)
 
-    validity_conditions = [
-        exec_amt.token == token,
-        exec_amt.balance >= 0,
-        max_amt and exec_amt <= max_amt,
-    ]
-    return exec_amt is None or all(validity_conditions)
+    return exec_amt is None

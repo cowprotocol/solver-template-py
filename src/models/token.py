@@ -5,8 +5,6 @@ import re
 from decimal import Decimal, getcontext
 from typing import Any, Optional
 
-import inflection
-
 from src.models.types import NumericType
 from src.util.constants import Constants
 
@@ -104,7 +102,7 @@ class TokenInfo:
                 "internal_buffer",
             ]:
                 value = value.quantize(Constants.DECIMAL_STR_PREC)
-            _str += f"\n-- {inflection.humanize(attr).lower()} : {value}"
+            _str += f"\n-- {attr} : {value}"
 
         return _str
 
@@ -185,7 +183,9 @@ class TokenBalance:
         return token_amount
 
     @classmethod
-    def parse_amount(cls, amt_type: Optional[Amount], token: Token) -> TokenBalance:
+    def parse_amount(
+        cls, amt_type: Optional[Amount], token: Token
+    ) -> Optional[TokenBalance]:
         """Auxiliary method to parse a numerical value into a TokenBalance.
 
         Args:
@@ -207,7 +207,7 @@ class TokenBalance:
                 )
             return amt_type
 
-        return TokenBalance.default(token)
+        return None
 
     def as_decimal(self) -> Decimal:
         """Returns balance attribute as Decimal type"""

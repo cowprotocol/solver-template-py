@@ -53,7 +53,7 @@ def solve_auction(
     print("Received Batch Auction", batch.name)
     print("Parameters Supplied", params)
 
-    # batch.solve()
+    batch.solve()
 
     # 1. Solve BatchAuction: update batch_auction with
     # solution = batch.solve()

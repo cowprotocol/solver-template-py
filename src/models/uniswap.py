@@ -6,8 +6,6 @@ import logging
 from decimal import Decimal
 from typing import Optional, Any
 
-import inflection
-
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.token import Token, TokenBalance, Amount
 from src.models.types import NumericType
@@ -174,14 +172,9 @@ class Uniswap:
         fee = Decimal(amm_data["fee"])
 
         kwargs = {
-            inflection.underscore(k): v
-            for k, v in amm_data.items()
-            if k not in attr_mandatory
+            "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
+            "kind": kind,
         }
-        kwargs["cost"] = TokenBalance.parse(
-            amm_data.get("cost"), allow_negative=False, allow_none=True
-        )
-        kwargs["kind"] = kind
         if input_weight:
             kwargs["input_weight"] = input_weight
 

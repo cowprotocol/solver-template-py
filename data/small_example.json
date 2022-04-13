@@ -55,7 +55,7 @@
       "sell_amount": "100",
       "buy_amount": "10",
       "allow_partial_fill": false,
-      "is_sell_order": false,
+      "is_sell_order": true,
       "fee": {
         "amount": "115995469750",
         "token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"
