@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional, Any
 
 from src.models.exchange_rate import ExchangeRate as XRate
+from src.models.objective_value import ObjectiveValue
 from src.models.token import Token, TokenBalance, Amount
 from src.models.types import NumericType
 from src.util.constants import Constants
@@ -15,26 +15,6 @@ from src.util.numbers import decimal_to_str
 
 OrderSerializedType = dict[str, Any]
 OrdersSerializedType = dict[str, OrderSerializedType]
-
-
-@dataclass
-class ObjectiveValue:
-    """Simplifies return type of Order.evaluate_objective"""
-
-    volume: TokenBalance
-    surplus: TokenBalance
-    fees: TokenBalance
-    cost: TokenBalance
-
-    @classmethod
-    def default(cls, ref_token: Token) -> ObjectiveValue:
-        """Default Objective value of zero in all fields for given ref_token"""
-        return cls(
-            volume=TokenBalance.default(ref_token),
-            surplus=TokenBalance.default(ref_token),
-            fees=TokenBalance.default(ref_token),
-            cost=TokenBalance.default(ref_token),
-        )
 
 
 class Order:
@@ -303,7 +283,6 @@ class Order:
                        per unit of buy token (default: 1e-6).
         Returns:
             True, if order can be executed; False otherwise.
-
         """
         buy_token, sell_token = self.buy_token, self.sell_token
         if xrate.tokens != {buy_token, sell_token}:
@@ -458,10 +437,7 @@ class Order:
         Evaluates the objective values for a single order
         given execution prices in reference token
         """
-        result = ObjectiveValue.default(ref_token)
-
-        def vol_in_ref_token(val: Decimal) -> TokenBalance:
-            return TokenBalance(val / prices[ref_token], ref_token)
+        result = ObjectiveValue.zero(ref_token, prices[ref_token])
 
         buy_token, sell_token = self.buy_token, self.sell_token
         buy_price, sell_price = prices.get(buy_token), prices.get(sell_token)
@@ -472,7 +448,7 @@ class Order:
         exec_buy = self.exec_buy_amount.as_decimal()
         exec_sell = self.exec_sell_amount.as_decimal()
 
-        result.volume += vol_in_ref_token(exec_sell * sell_price)
+        result.volume += result.ref_token_volume(exec_sell, sell_price)
 
         if self.max_buy_amount is not None and self.max_sell_amount is not None:
             # Double-sided orders.
@@ -486,18 +462,18 @@ class Order:
                 f"Welfare is not defined for market order <{self.order_id}>!"
             )
 
-        elif not self.is_liquidity_order and self.max_buy_amount is not None:
+        elif not self.is_liquidity_order and self.is_sell_order:
             # Limit buy orders.
             lim = self.max_limit.convert_unit(buy_token).as_decimal()
-            result.surplus += vol_in_ref_token(
-                exec_buy * (lim * sell_price - buy_price)
+            result.surplus += result.ref_token_volume(
+                exec_buy, lim * sell_price - buy_price
             )
 
-        elif not self.is_liquidity_order and self.max_sell_amount is not None:
+        elif not self.is_liquidity_order and self.is_buy_order:
             # Limit sell orders.
             lim = self.max_limit.convert_unit(sell_token).as_decimal()
-            result.surplus += vol_in_ref_token(
-                exec_sell * (sell_price - lim * buy_price)
+            result.surplus += result.ref_token_volume(
+                exec_sell, sell_price - lim * buy_price
             )
         else:
             assert self.is_liquidity_order
@@ -515,13 +491,13 @@ class Order:
 
                 fill_ratio = exec_vol / max_vol
 
-                result.fees += vol_in_ref_token(
-                    fill_ratio * self.fee.as_decimal() * prices[self.fee.token]
+                result.fees += result.ref_token_volume(
+                    fill_ratio * self.fee.as_decimal(), prices[self.fee.token]
                 )
 
             if self.cost is not None:
-                result.cost += vol_in_ref_token(
-                    self.cost.as_decimal() * prices[self.cost.token]
+                result.cost += result.ref_token_volume(
+                    self.cost.as_decimal(), prices[self.cost.token]
                 )
         return result
 

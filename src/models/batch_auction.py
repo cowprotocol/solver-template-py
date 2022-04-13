@@ -9,10 +9,10 @@ import logging
 from decimal import Decimal
 from typing import Any, Optional
 
+from src.models.objective_value import ObjectiveValue
 from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
     Token,
-    TokenBalance,
     TokenInfo,
     select_token_with_highest_normalize_priority,
     TokenDict,
@@ -287,50 +287,27 @@ class BatchAuction:
     #  SOLUTION PROCESSING METHODS  #
     #################################
 
-    def evaluate_objective_functions(self) -> Optional[dict]:
-        """Compute values of different objective functions.
-
-        Returns:
-            A dictionary with several metrics regarding objective.
-        """
-        if not self.ref_token:
+    def evaluate_objective_functions(self) -> Optional[ObjectiveValue]:
+        """Evaluates and returns a Batches Objective"""
+        ref_token = self.ref_token
+        if not ref_token or not self.prices.get(ref_token):
             return None
 
-        # Init objective values.
-        # TODO - use a data class for this.
-        res = {
-            "volume": TokenBalance(0, self.ref_token),
-            "surplus": TokenBalance(0, self.ref_token),
-            "fees": TokenBalance(0, self.ref_token),
-            "cost": TokenBalance(0, self.ref_token),
-            "objective_surplus_fees_costs": TokenBalance(0, self.ref_token),
-        }
+        res = ObjectiveValue.zero(ref_token, self.prices.get(ref_token))
 
         if not self.has_solution():
             return res
 
-        p_ref_token = self.prices[self.ref_token]
-
-        if p_ref_token is None:
-            return None
-
-        def vol_in_ref_token(val: Decimal) -> TokenBalance:
-            return TokenBalance(val / p_ref_token, self.ref_token)
-
+        # sum(order.evaluate_objective(ref_token, self.prices) for order in self.orders)
         for order in self.orders:
-            order_objective = order.evaluate_objective(self.ref_token, self.prices)
-            res["volume"] += order_objective.volume
-            res["surplus"] += order_objective.surplus
-            res["fees"] += order_objective.fees
-            res["cost"] += order_objective.cost
+            res += order.evaluate_objective(ref_token, self.prices)
 
         for amm in self.uniswaps:
             if not amm.balance_update1.is_zero() and amm.cost is not None:
-                res["cost"] += vol_in_ref_token(
-                    amm.cost.as_decimal() * self.prices[amm.cost.token]
+                res.cost += res.ref_token_volume(
+                    amm.cost.as_decimal(), self.prices[amm.cost.token]
                 )
 
-        res["objective_surplus_fees_costs"] = res["surplus"] + res["fees"] - res["cost"]
         return res
 
     def has_solution(self) -> bool:
