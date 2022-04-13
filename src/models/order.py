@@ -259,7 +259,6 @@ class Order:
 
     @exec_buy_amount.setter
     def exec_buy_amount(self, value: Optional[Amount]) -> None:
-        print(value, self.buy_token)
         update = TokenBalance.parse_amount(value, self.buy_token)
         if update is None:
             raise ValueError("Cant update exec_buy_amount to None")
@@ -280,24 +279,6 @@ class Order:
     #####################
     #  UTILITY METHODS  #`
     #####################
-
-    def overlaps(self, other: Order) -> bool:
-        """
-        Determine if one order can be matched with another.
-        opposite {buy|sell} tokens and matching prices
-        """
-        token_conditions = [
-            self.buy_token == other.sell_token,
-            self.sell_token == other.buy_token,
-        ]
-        if not all(token_conditions):
-            return False
-
-        common_token = self.sell_token
-
-        self_limit = self.max_limit.convert_unit(common_token)
-        other_limit = other.max_limit.convert_unit(common_token)
-        return self_limit < other_limit
 
     def is_executable(self, xrate: XRate, xrate_tol: Decimal = Decimal("1e-6")) -> bool:
         """Determine if the order limit price satisfies a given market rate.
@@ -428,7 +409,7 @@ class Order:
     def is_executed(self) -> bool:
         """Check if order has already been executed."""
         assert self.is_valid()
-        return all(v is not None for v in [self.exec_buy_amount, self.exec_sell_amount])
+        return all([self.exec_buy_amount > 0, self.exec_sell_amount > 0])
 
     def is_valid(self) -> bool:
         """Validate the order against a list of tokens."""
@@ -458,6 +439,8 @@ class Order:
         given execution prices in reference token
         """
         result = ObjectiveValue.zero(ref_token, prices[ref_token])
+        if not self.is_executed():
+            return result
 
         buy_token, sell_token = self.buy_token, self.sell_token
         buy_price, sell_price = prices.get(buy_token), prices.get(sell_token)

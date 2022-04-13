@@ -293,34 +293,14 @@ class BatchAuction:
         """
         Find an execution for the batch
         """
-        orders = self.orders
-        for i in range(len(orders) - 1):
-            for j in range(i + 1, len(orders)):
-                order_i, order_j = orders[i], orders[j]
-                if order_i.overlaps(order_j):
-                    order_i.execute(
-                        buy_amount_value=order_j.sell_amount,
-                        sell_amount_value=order_i.sell_amount,
-                    )
-                    order_j.execute(
-                        buy_amount_value=order_i.sell_amount,
-                        sell_amount_value=order_j.sell_amount,
-                    )
-                    token_a = self.token_info(order_i.sell_token)
-                    token_b = self.token_info(order_i.buy_token)
-                    self.prices[token_a.token] = token_a.external_price
-                    self.prices[token_b.token] = token_b.external_price
 
-    def evaluate_objective_functions(self) -> Optional[ObjectiveValue]:
+    def evaluate_objective(self) -> Optional[ObjectiveValue]:
         """Evaluates and returns a Batches Objective"""
         ref_token = self.ref_token
         if not ref_token or not self.prices.get(ref_token):
             return None
 
         res = ObjectiveValue.zero(ref_token, self.prices[ref_token])
-
-        if not self.has_solution():
-            return res
 
         for order in self.orders:
             res += order.evaluate_objective(ref_token, self.prices)
@@ -332,29 +312,6 @@ class BatchAuction:
                 )
 
         return res
-
-    def has_solution(self) -> bool:
-        """Check if batch auction has a valid solution.
-
-        Returns:
-            True, if there are prices + order execution info; False otherwise.
-
-        """
-        self.validate()
-
-        # (1) Check clearing prices.
-        if not self.prices:
-            return False
-
-        # (2) Check order execution.
-        for order in self.orders:
-            if not order.is_executed():
-                logging.warning(
-                    f"No execution information for order <{order.order_id}>!"
-                )
-                return False
-
-        return True
 
     #######################
     #  AUXILIARY METHODS  #

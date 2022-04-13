@@ -38,10 +38,10 @@ Run the driver (auction dispatcher in DryRun mode). Configured to read the order
 from our staging environment on Gnosis Chain. These parameters can be altered
 in [.env](.env)
 
-
 ## With Docker
 
 If you have docker installed then you can run this.
+
 ```shell
 docker run -it --rm --env-file .env --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver
 ```
@@ -78,7 +78,6 @@ cargo run -p solver --  --orderbook-url https://protocol-xdai.dev.gnosisdev.com 
     --log-filter=info,solver=debug
 ```
 
-
 # Place an order
 
 Navigate to [barn.cowswap.exchange/](https://barn.cowswap.exchange/#/swap) and place a
@@ -90,3 +89,5 @@ sent to your solver
 - How to Build a Solver: https://docs.cow.fi/tutorials/how-to-write-a-solver
 - In Depth Solver
   Specification: https://docs.cow.fi/off-chain-services/in-depth-solver-specification
+- Settlement Contract (namely the settle
+  method): https://github.com/cowprotocol/contracts/blob/ff6fb7cad7787b8d43a6468809cacb799601a10e/src/contracts/GPv2Settlement.sol#L121-L143
