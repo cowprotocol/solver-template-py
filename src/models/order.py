@@ -259,10 +259,11 @@ class Order:
 
     @exec_buy_amount.setter
     def exec_buy_amount(self, value: Optional[Amount]) -> None:
+        print(value, self.buy_token)
         update = TokenBalance.parse_amount(value, self.buy_token)
-        if update is not None:
-            self._exec_buy_amount = update
-        raise ValueError("Cant update exec_buy_amount to None")
+        if update is None:
+            raise ValueError("Cant update exec_buy_amount to None")
+        self._exec_buy_amount = update
 
     @property
     def exec_sell_amount(self) -> TokenBalance:
@@ -272,12 +273,12 @@ class Order:
     @exec_sell_amount.setter
     def exec_sell_amount(self, value: Amount) -> None:
         update = TokenBalance.parse_amount(value, self.sell_token)
-        if update:
-            self._exec_sell_amount = update
-        raise ValueError("Cant update exec_sell_amount to None")
+        if update is None:
+            raise ValueError("Cant update exec_sell_amount to None")
+        self._exec_sell_amount = update
 
     #####################
-    #  UTILITY METHODS  #
+    #  UTILITY METHODS  #`
     #####################
 
     def overlaps(self, other: Order) -> bool:

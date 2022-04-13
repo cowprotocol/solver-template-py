@@ -328,7 +328,9 @@ class Uniswap:
         update = TokenBalance.parse_amount(value, self.balance1.token)
         if update is not None:
             self._balance_update1 = update
-        logging.warning("Attempted to update with None, left as is.")
+        else:
+            logging.warning("Attempted to update with None, left as is.")
+
 
     @property
     def balance_update2(self) -> TokenBalance:
@@ -340,7 +342,8 @@ class Uniswap:
         update = TokenBalance.parse_amount(value, self.balance2.token)
         if update is not None:
             self._balance_update2 = update
-        logging.warning("Attempted to update with None, left as is.")
+        else:
+            logging.warning("Attempted to update with None, left as is.")
 
     @property
     def exec_plan_coords(self) -> ExecPlanCoords:
