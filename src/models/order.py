@@ -519,6 +519,7 @@ class Order:
                 result.cost += result.ref_token_volume(
                     self.cost.as_decimal(), prices[self.cost.token]
                 )
+        logging.debug(f"Evaluated Objective for order {self.order_id} as: {result}")
         return result
 
     def __str__(self) -> str:

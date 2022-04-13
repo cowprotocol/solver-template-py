@@ -331,7 +331,6 @@ class Uniswap:
         else:
             logging.warning("Attempted to update with None, left as is.")
 
-
     @property
     def balance_update2(self) -> TokenBalance:
         """Return the traded amount of the second token."""

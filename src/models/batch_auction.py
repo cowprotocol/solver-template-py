@@ -61,7 +61,9 @@ class BatchAuction:
 
         # Store reference token and (previous) prices.
         self._ref_token = ref_token
-        self.prices = prices if prices else {}
+        self.prices = (
+            prices if prices else {ref_token: self._tokens[ref_token].external_price}
+        )
 
         self.validate()
 
@@ -304,6 +306,10 @@ class BatchAuction:
                         buy_amount_value=order_i.sell_amount,
                         sell_amount_value=order_j.sell_amount,
                     )
+                    token_a = self.token_info(order_i.sell_token)
+                    token_b = self.token_info(order_i.buy_token)
+                    self.prices[token_a.token] = token_a.external_price
+                    self.prices[token_b.token] = token_b.external_price
 
     def evaluate_objective_functions(self) -> Optional[ObjectiveValue]:
         """Evaluates and returns a Batches Objective"""
@@ -316,7 +322,6 @@ class BatchAuction:
         if not self.has_solution():
             return res
 
-        # sum(order.evaluate_objective(ref_token, self.prices) for order in self.orders)
         for order in self.orders:
             res += order.evaluate_objective(ref_token, self.prices)
 

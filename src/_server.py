@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import decimal
 import logging
-from typing import Collection
 
 import uvicorn
 from dotenv import load_dotenv
@@ -42,21 +41,34 @@ class ServerSettings(BaseSettings):
 
 server_settings = ServerSettings()
 
+# ++++ Endpoints: ++++
 
-# ++++ Run main functions ++++
+
+app = FastAPI(title="Batch auction solver")
 
 
-def solve_auction(
-    batch: BatchAuction, params: SolverArgs
-) -> dict[str, Collection[str]]:
-    """Basic Run Method (Solves an Auction)"""
+@app.get("/health", status_code=200)
+def health() -> bool:
+    """Convenience endpoint to check if server is alive."""
+    return True
+
+
+@app.post("/solve/", response_model=SettledBatchAuctionModel)
+async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
+    """API POST solve endpoint handler"""
+    logging.debug(f"Received solve request {await request.json()}")
+    solver_args = SolverArgs.from_request(request=request, meta=problem.metadata)
+
+    batch = BatchAuction.from_dict(problem.dict(), solver_args.instance_name)
+
     print("Received Batch Auction", batch.name)
-    print("Parameters Supplied", params)
+    print("Parameters Supplied", solver_args)
 
     # 1. Solve BatchAuction: update batch_auction with
     batch.solve()
     print("Solved Batch!")
-    print(batch.has_solution())
+    print("Batch Recognized as having solution", batch.has_solution())
+
     print(batch.evaluate_objective_functions())
 
     # 2. Validate solution
@@ -124,29 +136,6 @@ def solve_auction(
         },
     }
     return sample_output
-
-
-# ++++ Endpoints: ++++
-
-
-app = FastAPI(title="Batch auction solver")
-
-
-@app.get("/health", status_code=200)
-def health() -> bool:
-    """Convenience endpoint to check if server is alive."""
-    return True
-
-
-@app.post("/solve/", response_model=SettledBatchAuctionModel)
-async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
-    """API POST solve endpoint handler"""
-    logging.debug(f"Received solve request {await request.json()}")
-    solver_args = SolverArgs.from_request(request=request, meta=problem.metadata)
-
-    batch_auction = BatchAuction.from_dict(problem.dict(), solver_args.instance_name)
-
-    return solve_auction(batch_auction, solver_args)
 
 
 # ++++ Server setup: ++++
