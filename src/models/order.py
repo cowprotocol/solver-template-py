@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
+from enum import Enum
 from typing import Optional, Any
 
 
@@ -15,6 +16,14 @@ from src.util.numbers import decimal_to_str
 
 OrderSerializedType = dict[str, Any]
 OrdersSerializedType = dict[str, OrderSerializedType]
+
+
+class OrderMatchType(Enum):
+    """Enum for different Order Matching"""
+
+    LHS_FILLED = "LhsFilled"
+    RHS_FILLED = "RhsFilled"
+    BOTH_FILLED = "BothFilled"
 
 
 # TODO - use dataclass for this.
@@ -210,11 +219,33 @@ class Order:
         if not all(token_conditions):
             return False
 
-        common_token = self.sell_token
+        # To avoid using max_limit we can compare like this:
+        return (
+            self.buy_amount * other.buy_amount <= other.sell_amount * self.sell_amount
+        )
+        # common_token = self.sell_token
+        # self_limit = self.max_limit.convert_unit(common_token)
+        # other_limit = other.max_limit.convert_unit(common_token)
+        # return self_limit < other_limit
 
-        self_limit = self.max_limit.convert_unit(common_token)
-        other_limit = other.max_limit.convert_unit(common_token)
-        return self_limit < other_limit
+    def match_type(self, other: Order) -> Optional[OrderMatchType]:
+        """Determine to what extent two orders match"""
+        if not self.overlaps(other):
+            return None
+
+        if (
+            self.buy_amount <= other.sell_amount
+            and self.sell_amount <= other.buy_amount
+        ):
+            return OrderMatchType.LHS_FILLED
+
+        if (
+            self.buy_amount >= other.sell_amount
+            and self.sell_amount >= other.buy_amount
+        ):
+            return OrderMatchType.RHS_FILLED
+
+        return OrderMatchType.BOTH_FILLED
 
     def is_executable(self, xrate: XRate, xrate_tol: Decimal = Decimal("1e-6")) -> bool:
         """Determine if the order limit price satisfies a given market rate.

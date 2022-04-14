@@ -8,7 +8,7 @@ import logging
 from decimal import Decimal
 from typing import Any, Optional
 
-from src.models.order import Order, OrdersSerializedType
+from src.models.order import Order, OrdersSerializedType, OrderMatchType
 from src.models.token import (
     Token,
     TokenInfo,
@@ -154,19 +154,18 @@ class BatchAuction:
         """
         return Decimal(10) ** (2 * 18 - self.token_info(self.ref_token).decimals)
 
-    #################################
-    #  SOLUTION PROCESSING METHODS  #
-    #################################
-
-    def solve(self):
-        """
-        Find an execution for the batch
-        """
-        orders = self.orders
-        for i in range(len(orders) - 1):
-            for j in range(i + 1, len(orders)):
-                order_i, order_j = orders[i], orders[j]
-                if order_i.overlaps(order_j):
+    def solve(self) -> None:
+        """Solve Batch"""
+        sell_orders = [order for order in self.orders if order.is_sell_order]
+        for i in range(len(sell_orders) - 1):
+            for j in range(i + 1, len(sell_orders)):
+                order_i, order_j = sell_orders[i], sell_orders[j]
+                one_executed = any([order_i.is_executed(), order_j.is_executed()])
+                if (
+                    order_i.match_type(order_j) == OrderMatchType.BOTH_FILLED
+                    and not one_executed
+                ):
+                    print(f"Found matching orders {order_i} with {order_j}")
                     order_i.execute(
                         buy_amount_value=order_j.sell_amount,
                         sell_amount_value=order_i.sell_amount,
@@ -183,6 +182,10 @@ class BatchAuction:
                     self.prices[token_a.token] = order_j.sell_amount
                     # This is the buyPrice of order i
                     self.prices[token_b.token] = order_i.sell_amount
+
+    #################################
+    #  SOLUTION PROCESSING METHODS  #
+    #################################
 
     def __str__(self) -> str:
         """Print batch auction data.
@@ -209,7 +212,7 @@ class BatchAuction:
 
     def __repr__(self) -> str:
         """Print batch auction data."""
-        return str(self)
+        return self.name
 
 
 def load_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
