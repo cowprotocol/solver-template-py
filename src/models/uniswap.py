@@ -399,8 +399,3 @@ class Uniswap:
         if not isinstance(other, Uniswap):
             return NotImplemented
         return self.pool_id < other.pool_id
-
-
-def serialize_amms(amms: list[Uniswap]) -> UniswapsSerializedType:
-    """Return AMMs as dict of dicts."""
-    return {amm.pool_id: amm.as_dict() for amm in amms if amm.kind != AMMKind.UNISWAP}

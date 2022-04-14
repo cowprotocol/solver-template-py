@@ -6,18 +6,15 @@ from src.models.types import NumericType
 
 
 class ExchangeRate:
-    """Class that represents the exchange rate between two tokens."""
+    """Class representing the exchange rate between two tokens."""
 
     def __init__(self, tb1: TokenBalance, tb2: TokenBalance):
-        """Initialize.
-
+        """
         An ExchangeRate is represented as equivalence of two TokenBalances,
         e.g., 2 [ETH] == 800 [EUR] --> 400 [EUR]/[ETH] or 0.0025 [ETH]/[EUR].
-
         Args:
             tb1: First TokenBalance.
             tb2: Second TokenBalance.
-
         """
         assert isinstance(tb1, TokenBalance)
         assert isinstance(tb2, TokenBalance)
@@ -25,12 +22,12 @@ class ExchangeRate:
         if tb1.token == tb2.token:
             raise ValueError("Both given tokens are identical!")
 
-        if not all(tb.is_positive() for tb in [tb1, tb2]):
+        if not (tb1.is_positive() and tb2.is_positive()):
             raise ValueError(f"Both token balances must be positive! {tb1} & {tb2}")
 
         # Store attributes.
-        self._tb1 = tb1
-        self._tb2 = tb2
+        self.tb1 = tb1
+        self.tb2 = tb2
 
     @classmethod
     def from_prices(
@@ -60,18 +57,6 @@ class ExchangeRate:
 
         return cls(balances[0], balances[1])
 
-    @property
-    def tb1(self) -> TokenBalance:
-        """Get first token balance."""
-        assert isinstance(self._tb1, TokenBalance)
-        return self._tb1
-
-    @property
-    def tb2(self) -> TokenBalance:
-        """Get second token balance."""
-        assert isinstance(self._tb2, TokenBalance)
-        return self._tb2
-
     def token_balance(self, token: Token) -> TokenBalance:
         """Get token balance for given token."""
         if token == self.tb1.token:
@@ -83,23 +68,14 @@ class ExchangeRate:
 
     @property
     def tokens(self) -> set[Token]:
-        """Get the two tokens involved.
-
-        Returns:
-            A set containing the two tokens.
-
-        """
+        """Returns a set containing the two tokens."""
         return {self.tb1.token, self.tb2.token}
 
     def convert(self, token_balance: TokenBalance) -> TokenBalance:
         """Convert a TokenBalance of one token into a TokenBalance of the other.
-
         Args:
             token_balance: TokenBalance to be converted.
-
-        Returns:
-            Converted TokenBalance.
-
+        Returns: Converted TokenBalance.
         """
         assert isinstance(token_balance, TokenBalance)
 
@@ -118,23 +94,16 @@ class ExchangeRate:
 
     def convert_unit(self, token: Token) -> TokenBalance:
         """Convert one unit of one token into a TokenBalance of the other.
-
         Args:
             token: Token to be converted.
-
         Returns:
             Converted TokenBalance.
-
         """
         assert isinstance(token, Token)
         return self.convert(TokenBalance(1, token))
 
     def __eq__(self, other: object) -> bool:
-        """Equality operator.
-
-        Args:
-            other: Another ExchangeRate.
-        """
+        """Equality operator"""
         if not isinstance(other, ExchangeRate):
             raise ValueError(f"Cannot compare ExchangeRate and type <{type(other)}>!")
 
@@ -142,11 +111,7 @@ class ExchangeRate:
         return self.convert(other.tb1) == other.tb2
 
     def __ne__(self, other: object) -> bool:
-        """Non-equality operator.
-
-        Args:
-            other: Another ExchangeRate.
-        """
+        """Non-equality operator"""
         return not self == other
 
     def __str__(self) -> str:

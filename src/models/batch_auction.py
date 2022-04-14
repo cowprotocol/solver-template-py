@@ -82,7 +82,7 @@ class BatchAuction:
         metadata = load_metadata(data.get("metadata", {}))
         prices = load_prices(data.get("prices", {}))
 
-        ref_token = select_ref_token(tokens)
+        ref_token = select_token_with_highest_normalize_priority(tokens)
 
         return cls(
             tokens,
@@ -291,8 +291,3 @@ def load_tokens(tokens_serialized: dict) -> TokenDict:
         tokens_dict[token] = TokenInfo(token, **token_info)
 
     return tokens_dict
-
-
-def select_ref_token(tokens: dict[Token, TokenInfo]) -> Token:
-    """Select ref_token from the list of tokens."""
-    return select_token_with_highest_normalize_priority(tokens)

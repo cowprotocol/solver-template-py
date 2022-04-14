@@ -352,8 +352,3 @@ class Order:
             return NotImplemented
 
         return self.order_id < other.order_id
-
-
-def serialize_orders(orders: list[Order]) -> OrdersSerializedType:
-    """Return dict of order pool_id -> order details."""
-    return {o.order_id: o.as_dict() for o in orders}
