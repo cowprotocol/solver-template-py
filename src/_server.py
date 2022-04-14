@@ -65,11 +65,7 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     print("Parameters Supplied", solver_args)
 
     # 1. Solve BatchAuction: update batch_auction with
-    batch.solve()
-    print("Solved Batch!")
-
-    # 2. Validate solution
-    # valid = Validation.is_valid_solution(solution)
+    # batch.solve()
 
     sample_output = {
         "ref_token": batch.ref_token.value,
