@@ -52,14 +52,11 @@ class Uniswap:
         self.pool_id = pool_id
 
         # Init pool balances.
-        self._balance1 = balance1
-        self._balance2 = balance2
-
-        self._fee = fee if isinstance(fee, Decimal) else Decimal(fee)
-        self._cost = cost
-
+        self.balance1 = balance1
+        self.balance2 = balance2
+        self.fee = fee if isinstance(fee, Decimal) else Decimal(fee)
+        self.cost = cost
         self.mandatory = mandatory
-
         self.kind = kind
 
         self._balance_update1 = TokenBalance.default(balance1.token)
@@ -263,24 +260,6 @@ class Uniswap:
     ####################
 
     @property
-    def balance1(self) -> TokenBalance:
-        """Return the first TokenBalance."""
-        return self._balance1
-
-    @balance1.setter
-    def balance1(self, value: TokenBalance) -> None:
-        self._balance1 = value
-
-    @property
-    def balance2(self) -> TokenBalance:
-        """Return the second TokenBalance."""
-        return self._balance2
-
-    @balance2.setter
-    def balance2(self, value: TokenBalance) -> None:
-        self._balance2 = value
-
-    @property
     def token1(self) -> Token:
         """Returns token1"""
         return self._balance1.token
@@ -289,24 +268,6 @@ class Uniswap:
     def token2(self) -> Token:
         """Returns token2"""
         return self._balance2.token
-
-    @property
-    def fee(self) -> Decimal:
-        """Return the fee percentage."""
-        return self._fee
-
-    @fee.setter
-    def fee(self, value: FeeType) -> None:
-        self._fee = Decimal(value)
-
-    @property
-    def cost(self) -> Optional[TokenBalance]:
-        """Return the execution cost."""
-        return self._cost
-
-    @cost.setter
-    def cost(self, value: TokenBalance) -> None:
-        self._cost = value
 
     @property
     def tokens(self) -> set[Token]:
