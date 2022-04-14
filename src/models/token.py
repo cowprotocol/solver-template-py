@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from decimal import Decimal, getcontext
-from typing import Any, Optional
+from typing import Optional
 
 from src.models.types import NumericType
 from src.util.constants import Constants
@@ -125,7 +125,6 @@ def select_token_with_highest_normalize_priority(
 
 TokenDict = dict[Token, TokenInfo]
 TokenSerializedType = str
-TokensSerializedType = dict[TokenSerializedType, dict[str, Any]]
 TokenAmountSerializedType = tuple[str | NumericType, TokenSerializedType]
 
 
@@ -409,19 +408,6 @@ class TokenBalance:
     def __repr__(self) -> str:
         """Represent as string."""
         return str(self)
-
-
-def serialize_tokens(tokens: TokenDict) -> TokensSerializedType:
-    """Return list of token names."""
-    return {
-        str(token): {k: v for k, v in token_info.as_dict().items() if v is not None}
-        for token, token_info in tokens.items()
-    }
-
-
-def serialize_prices(prices: dict[Token, Optional[Decimal]]) -> dict[str, Decimal]:
-    """Return token prices as numeric strings."""
-    return {str(t): Decimal(p) for t, p in prices.items() if p is not None}
 
 
 Amount = TokenBalance | float | int | Decimal

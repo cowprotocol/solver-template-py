@@ -4,11 +4,12 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Optional, Any, Mapping
+from enum import Enum
+from typing import Optional, Any
+
 
 from src.models.exchange_rate import ExchangeRate as XRate
-from src.models.objective_value import ObjectiveValue
-from src.models.token import Token, TokenBalance, Amount
+from src.models.token import Token, TokenBalance
 from src.models.types import NumericType
 from src.util.constants import Constants
 from src.util.numbers import decimal_to_str
@@ -17,6 +18,15 @@ OrderSerializedType = dict[str, Any]
 OrdersSerializedType = dict[str, OrderSerializedType]
 
 
+class OrderMatchType(Enum):
+    """Enum for different Order Matching"""
+
+    LHS_FILLED = "LhsFilled"
+    RHS_FILLED = "RhsFilled"
+    BOTH_FILLED = "BothFilled"
+
+
+# TODO - use dataclass for this.
 class Order:
     """Representation of a limit order.
     An order is specified with 3 bounds:
@@ -42,7 +52,6 @@ class Order:
         has_atomic_execution: bool = False,
         fee: Optional[TokenBalance] = None,
         cost: Optional[TokenBalance] = None,
-        **kwargs: Mapping[str, Any],
     ) -> None:
         """Initialize.
 
@@ -63,52 +72,31 @@ class Order:
             exec_buy_amount: Matched amount of buy-token in solution.
             exec_sell_amount: Matched amount of sell-token in solution.
         """
-        # Consistency checks.
-        assert all(isinstance(t, Token) for t in [buy_token, sell_token])
         if buy_token == sell_token:
             raise ValueError("sell- and buy-token cannot be equal!")
 
-        self.order_id = order_id
+        if not (buy_amount > 0 and sell_amount > 0):
+            raise ValueError(
+                f"buy {buy_amount} and sell {sell_amount} amounts must be positive!"
+            )
 
-        # Init order data.
+        self.order_id = order_id
         self.buy_token = buy_token
         self.sell_token = sell_token
         self.buy_amount = buy_amount
         self.sell_amount = sell_amount
-
-        # Store fill-or-kill property.
+        self.is_sell_order = is_sell_order
         self.allow_partial_fill = allow_partial_fill
-
-        # Store liquidity property.
         self.is_liquidity_order = is_liquidity_order
-
-        # Store atomic execution property.
         self.has_atomic_execution = has_atomic_execution
+        self.fee: Optional[TokenBalance] = fee
+        self.cost: Optional[TokenBalance] = cost
 
-        self.max_buy_amount = None
-        self.max_sell_amount = None
-        if is_sell_order:
-            self.max_sell_amount = TokenBalance.parse_amount(sell_amount, sell_token)
-        else:
-            self.max_buy_amount = TokenBalance.parse_amount(buy_amount, buy_token)
-
-        limit_xrate = XRate(
-            TokenBalance(sell_amount, sell_token), TokenBalance(buy_amount, buy_token)
-        )
-        self.max_limit = limit_xrate
-
-        self._fee = fee
-        self._cost = cost
-
-        self._exec_buy_amount = TokenBalance.default(self.buy_token)
-        self._exec_sell_amount = TokenBalance.default(self.sell_token)
+        self.exec_buy_amount: Optional[TokenBalance] = None
+        self.exec_sell_amount: Optional[TokenBalance] = None
 
         self.exec_rate: Optional[XRate] = None
         self.exec_volume: Optional[Decimal] = None
-
-        # Store additional keyword-arguments.
-        for k, val in kwargs.items():
-            setattr(self, k, val)
 
     @classmethod
     def from_dict(cls, order_id: str, data: OrderSerializedType) -> Order:
@@ -132,33 +120,16 @@ class Order:
             if attr not in data:
                 raise ValueError(f"Missing field '{attr}' in order <{order_id}>!")
 
-        buy_token = Token(data["buy_token"])
-        sell_token = Token(data["sell_token"])
-
-        buy_amount = Decimal(data["buy_amount"])
-        sell_amount = Decimal(data["sell_amount"])
-
-        if not (buy_amount > 0 and sell_amount > 0):
-            raise ValueError(
-                f"buy {buy_amount} and sell {sell_amount} amounts must be positive!"
-            )
-
-        allow_partial_fill = bool(data["allow_partial_fill"])
-
-        kwargs: Mapping = {
-            "fee": TokenBalance.parse(data.get("fee"), allow_none=True),
-            "cost": TokenBalance.parse(data.get("cost"), allow_none=True),
-        }
-
         return Order(
-            order_id,
-            buy_token,
-            sell_token,
-            buy_amount,
-            sell_amount,
+            order_id=order_id,
+            buy_token=Token(data["buy_token"]),
+            sell_token=Token(data["sell_token"]),
+            buy_amount=Decimal(data["buy_amount"]),
+            sell_amount=Decimal(data["sell_amount"]),
             is_sell_order=bool(data["is_sell_order"]),
-            allow_partial_fill=allow_partial_fill,
-            **kwargs,
+            allow_partial_fill=bool(data["allow_partial_fill"]),
+            fee=TokenBalance.parse(data.get("fee"), allow_none=True),
+            cost=TokenBalance.parse(data.get("cost"), allow_none=True),
         )
 
     def as_dict(self) -> OrderSerializedType:
@@ -200,32 +171,27 @@ class Order:
 
         return order_dict
 
-    ############################
-    #  AUXILIARY INIT METHODS  #
-    ############################
+    @property
+    def max_limit(self) -> XRate:
+        """Max limit of the order as an exchange rate"""
+        return XRate(
+            tb1=TokenBalance(self.sell_amount, self.sell_token),
+            tb2=TokenBalance(self.buy_amount, self.buy_token),
+        )
 
-    def _parse_limit(self, xrate: XRate) -> Decimal:
-        """Auxiliary method to get limit price from parameter xrate.
+    @property
+    def max_buy_amount(self) -> Optional[TokenBalance]:
+        """true if order is buy order"""
+        if self.is_buy_order:
+            return TokenBalance.parse_amount(self.buy_amount, self.buy_token)
+        return None
 
-        Args:
-            xrate: Limit exchange rate.
-
-        Returns:
-            A float value x satisfying x[sell_token] = 1[buy_token], or None
-
-        """
-        buy_token, sell_token = self.buy_token, self.sell_token
-        if not xrate.tokens == {buy_token, sell_token}:
-            logging.error(
-                f"Exchange rate and order tokens do not match: "
-                f"{xrate} vs. <{buy_token}> | <{sell_token}>!"
-            )
-            raise ValueError
-        return xrate.convert_unit(buy_token).as_decimal()
-
-    ####################
-    #  ACCESS METHODS  #
-    ####################
+    @property
+    def max_sell_amount(self) -> Optional[TokenBalance]:
+        """true if order is buy order"""
+        if self.is_sell_order:
+            return TokenBalance.parse_amount(self.sell_amount, self.sell_token)
+        return None
 
     @property
     def tokens(self) -> set[Token]:
@@ -233,52 +199,53 @@ class Order:
         return {self.buy_token, self.sell_token}
 
     @property
-    def is_sell_order(self) -> bool:
-        """true if order is sell order"""
-        return self.max_sell_amount is not None
-
-    @property
     def is_buy_order(self) -> bool:
         """true if order is buy order"""
-        return self.max_buy_amount is not None
-
-    @property
-    def fee(self) -> Optional[TokenBalance]:
-        """Return the fee contribution."""
-        return self._fee
-
-    @property
-    def cost(self) -> Optional[TokenBalance]:
-        """Return the execution cost."""
-        return self._cost
-
-    @property
-    def exec_buy_amount(self) -> TokenBalance:
-        """Return the executed buy amount."""
-        return self._exec_buy_amount or TokenBalance.default(self.buy_token)
-
-    @exec_buy_amount.setter
-    def exec_buy_amount(self, value: Optional[Amount]) -> None:
-        update = TokenBalance.parse_amount(value, self.buy_token)
-        if update is None:
-            raise ValueError("Cant update exec_buy_amount to None")
-        self._exec_buy_amount = update
-
-    @property
-    def exec_sell_amount(self) -> TokenBalance:
-        """Return the executed sell amount."""
-        return self._exec_sell_amount
-
-    @exec_sell_amount.setter
-    def exec_sell_amount(self, value: Amount) -> None:
-        update = TokenBalance.parse_amount(value, self.sell_token)
-        if update is None:
-            raise ValueError("Cant update exec_sell_amount to None")
-        self._exec_sell_amount = update
+        return not self.is_sell_order
 
     #####################
     #  UTILITY METHODS  #`
     #####################
+
+    def overlaps(self, other: Order) -> bool:
+        """
+        Determine if one order can be matched with another.
+        opposite {buy|sell} tokens and matching prices
+        """
+        token_conditions = [
+            self.buy_token == other.sell_token,
+            self.sell_token == other.buy_token,
+        ]
+        if not all(token_conditions):
+            return False
+
+        # To avoid using max_limit we can compare like this:
+        return (
+            self.buy_amount * other.buy_amount <= other.sell_amount * self.sell_amount
+        )
+        # common_token = self.sell_token
+        # self_limit = self.max_limit.convert_unit(common_token)
+        # other_limit = other.max_limit.convert_unit(common_token)
+        # return self_limit < other_limit
+
+    def match_type(self, other: Order) -> Optional[OrderMatchType]:
+        """Determine to what extent two orders match"""
+        if not self.overlaps(other):
+            return None
+
+        if (
+            self.buy_amount <= other.sell_amount
+            and self.sell_amount <= other.buy_amount
+        ):
+            return OrderMatchType.LHS_FILLED
+
+        if (
+            self.buy_amount >= other.sell_amount
+            and self.sell_amount >= other.buy_amount
+        ):
+            return OrderMatchType.RHS_FILLED
+
+        return OrderMatchType.BOTH_FILLED
 
     def is_executable(self, xrate: XRate, xrate_tol: Decimal = Decimal("1e-6")) -> bool:
         """Determine if the order limit price satisfies a given market rate.
@@ -408,102 +375,7 @@ class Order:
 
     def is_executed(self) -> bool:
         """Check if order has already been executed."""
-        assert self.is_valid()
-        return all([self.exec_buy_amount > 0, self.exec_sell_amount > 0])
-
-    def is_valid(self) -> bool:
-        """Validate the order against a list of tokens."""
-
-        buy_exec_valid = validate_execution(
-            self.exec_buy_amount, self.buy_token, self.max_buy_amount
-        )
-        sell_exec_valid = validate_execution(
-            self.exec_sell_amount, self.sell_token, self.max_sell_amount
-        )
-
-        if hasattr(self, "exec_rate") and self.exec_rate is not None:
-            if not isinstance(self.exec_rate, XRate):
-                return False
-            if self.exec_rate.tokens != self.max_limit.tokens:
-                return False
-
-        return bool(buy_exec_valid and sell_exec_valid)
-
-    def evaluate_objective(
-        self,
-        ref_token: Token,
-        prices: dict,
-    ) -> ObjectiveValue:
-        """
-        Evaluates the objective values for a single order
-        given execution prices in reference token
-        """
-        result = ObjectiveValue.zero(ref_token, prices[ref_token])
-        if not self.is_executed():
-            return result
-
-        buy_token, sell_token = self.buy_token, self.sell_token
-        buy_price, sell_price = prices.get(buy_token), prices.get(sell_token)
-
-        if buy_price is None or sell_price is None:
-            return result
-
-        exec_buy = self.exec_buy_amount.as_decimal()
-        exec_sell = self.exec_sell_amount.as_decimal()
-
-        result.volume += result.ref_token_volume(exec_sell, sell_price)
-
-        if self.max_buy_amount is not None and self.max_sell_amount is not None:
-            # Double-sided orders.
-            logging.warning(
-                f"surplus is not defined for double-sided order <{self.order_id}>!"
-            )
-
-        elif self.max_limit is None:
-            # Market orders.
-            logging.warning(
-                f"Welfare is not defined for market order <{self.order_id}>!"
-            )
-
-        elif not self.is_liquidity_order and self.is_sell_order:
-            # Limit buy orders.
-            lim = self.max_limit.convert_unit(buy_token).as_decimal()
-            result.surplus += result.ref_token_volume(
-                exec_buy, lim * sell_price - buy_price
-            )
-
-        elif not self.is_liquidity_order and self.is_buy_order:
-            # Limit sell orders.
-            lim = self.max_limit.convert_unit(sell_token).as_decimal()
-            result.surplus += result.ref_token_volume(
-                exec_sell, sell_price - lim * buy_price
-            )
-        else:
-            assert self.is_liquidity_order
-
-        if exec_buy > 0:
-            if self.fee is not None:
-                if self.is_sell_order:
-                    assert isinstance(self.max_sell_amount, TokenBalance)
-                    max_vol = self.max_sell_amount.as_decimal() * sell_price
-                else:
-                    assert isinstance(self.max_buy_amount, TokenBalance)
-                    max_vol = self.max_buy_amount.as_decimal() * buy_price
-
-                exec_vol = exec_buy * buy_price
-
-                fill_ratio = exec_vol / max_vol
-
-                result.fees += result.ref_token_volume(
-                    fill_ratio * self.fee.as_decimal(), prices[self.fee.token]
-                )
-
-            if self.cost is not None:
-                result.cost += result.ref_token_volume(
-                    self.cost.as_decimal(), prices[self.cost.token]
-                )
-        logging.debug(f"Evaluated Objective for order {self.order_id} as: {result}")
-        return result
+        return self.exec_buy_amount is not None and self.exec_sell_amount is not None
 
     def __str__(self) -> str:
         """Represent as string."""
@@ -519,7 +391,6 @@ class Order:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Order):
             return NotImplemented
-
         if self.order_id != other.order_id:
             return False
         assert vars(self) == vars(other)
@@ -530,24 +401,3 @@ class Order:
             return NotImplemented
 
         return self.order_id < other.order_id
-
-
-def serialize_orders(orders: list[Order]) -> OrdersSerializedType:
-    """Return dict of order pool_id -> order details."""
-    return {o.order_id: o.as_dict() for o in orders}
-
-
-def validate_execution(
-    exec_amt: Optional[TokenBalance], token: Token, max_amt: Optional[TokenBalance]
-) -> bool:
-    """Similar method used to validate both executed buy and sell amounts for order"""
-    if isinstance(exec_amt, TokenBalance) and isinstance(max_amt, TokenBalance):
-        validity_conditions = [
-            exec_amt.token == token,
-            exec_amt.balance >= 0,
-            max_amt and exec_amt <= max_amt,
-        ]
-        logging.debug(f"Validity Conditions met {validity_conditions}")
-        return all(validity_conditions)
-
-    return exec_amt is None or max_amt is None

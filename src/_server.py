@@ -67,7 +67,6 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     # 1. Solve BatchAuction: update batch_auction with
     batch.solve()
     print("Solved Batch!")
-    print(batch.evaluate_objective())
 
     # 2. Validate solution
     # valid = Validation.is_valid_solution(solution)

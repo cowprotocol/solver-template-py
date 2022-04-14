@@ -52,14 +52,11 @@ class Uniswap:
         self.pool_id = pool_id
 
         # Init pool balances.
-        self._balance1 = balance1
-        self._balance2 = balance2
-
-        self._fee = fee if isinstance(fee, Decimal) else Decimal(fee)
-        self._cost = cost
-
+        self.balance1 = balance1
+        self.balance2 = balance2
+        self.fee = fee if isinstance(fee, Decimal) else Decimal(fee)
+        self.cost = cost
         self.mandatory = mandatory
-
         self.kind = kind
 
         self._balance_update1 = TokenBalance.default(balance1.token)
@@ -100,16 +97,14 @@ class Uniswap:
             A Uniswap object.
 
         """
-        attr_mandatory = ["kind", "reserves", "fee"]
-
-        for attr in attr_mandatory:
+        for attr in ["kind", "reserves", "fee"]:
             if attr not in amm_data:
                 raise ValueError(f"Missing field '{attr}' in amm <{amm_id}>!")
 
         kind = AMMKind(amm_data["kind"])
         reserves = amm_data.get("reserves")
-        input_weight = None
 
+        kwargs: Mapping = {}
         if kind == AMMKind.CONSTANT_PRODUCT:
             # Parse UniswapV2/Sushiswap pools.
             if not isinstance(reserves, dict):
@@ -117,7 +112,10 @@ class Uniswap:
                     f"AMM <{amm_id}>: 'reserves' must be a dict of Token -> amount!"
                 )
             if len(reserves) != 2:
-                message = f"AMM <{amm_id}>: ConstantProduct AMMs are only supported with 2 tokens!"
+                message = (
+                    f"AMM <{amm_id}>: "
+                    f"ConstantProduct AMMs are only supported with 2 tokens!"
+                )
                 logging.warning(message)
                 return None
             balance1, balance2 = [
@@ -147,6 +145,7 @@ class Uniswap:
                     "with 2 tokens and equal weights!"
                 )
                 return None
+
             balance1, balance2 = [
                 TokenBalance(
                     Decimal(b["balance"]),
@@ -155,29 +154,24 @@ class Uniswap:
                 for t, b in reserves.items()
             ]
             input_weight = list(reserves.values())[0]["weight"]
-
+            kwargs = {
+                "input_weight": input_weight,
+            }
         else:
             logging.warning(
                 f"AMM <{amm_id}>: type <{kind}> is currently not supported!"
             )
             return None
 
-        fee = Decimal(amm_data["fee"])
-
-        kwargs: Mapping
-        if input_weight:
-            kwargs = {
-                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
-                "kind": kind,
-                "input_weight": input_weight,
-            }
-        else:
-            kwargs = {
-                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
-                "kind": kind,
-            }
-
-        return Uniswap(amm_id, balance1, balance2, fee, **kwargs)
+        return Uniswap(
+            pool_id=amm_id,
+            balance1=balance1,
+            balance2=balance2,
+            fee=Decimal(amm_data["fee"]),
+            cost=TokenBalance.parse(amm_data.get("cost"), allow_none=True),
+            kind=kind,
+            **kwargs,
+        )
 
     def as_dict(self) -> dict:
         """Return AMM object as dictionary.
@@ -233,7 +227,8 @@ class Uniswap:
             sequence, position = self.exec_plan_coords.as_tuple()
             if sequence is None or position is None:
                 logging.warning(
-                    f"AMM <{self.pool_id}>: has balance updates with invalid execution plan"
+                    f"AMM <{self.pool_id}>: "
+                    f"has balance updates with invalid execution plan"
                 )
                 exec_plan = None
             else:
@@ -263,50 +258,14 @@ class Uniswap:
     ####################
 
     @property
-    def balance1(self) -> TokenBalance:
-        """Return the first TokenBalance."""
-        return self._balance1
-
-    @balance1.setter
-    def balance1(self, value: TokenBalance) -> None:
-        self._balance1 = value
-
-    @property
-    def balance2(self) -> TokenBalance:
-        """Return the second TokenBalance."""
-        return self._balance2
-
-    @balance2.setter
-    def balance2(self, value: TokenBalance) -> None:
-        self._balance2 = value
-
-    @property
     def token1(self) -> Token:
         """Returns token1"""
-        return self._balance1.token
+        return self.balance1.token
 
     @property
     def token2(self) -> Token:
         """Returns token2"""
-        return self._balance2.token
-
-    @property
-    def fee(self) -> Decimal:
-        """Return the fee percentage."""
-        return self._fee
-
-    @fee.setter
-    def fee(self, value: FeeType) -> None:
-        self._fee = Decimal(value)
-
-    @property
-    def cost(self) -> Optional[TokenBalance]:
-        """Return the execution cost."""
-        return self._cost
-
-    @cost.setter
-    def cost(self, value: TokenBalance) -> None:
-        self._cost = value
+        return self.balance2.token
 
     @property
     def tokens(self) -> set[Token]:
@@ -418,15 +377,6 @@ class Uniswap:
         """Derive the marginal exchange rate from the pool balances."""
         return XRate(self.balance1, self.balance2)
 
-    def is_valid(self) -> bool:
-        """Validate the pool."""
-        if not isinstance(self.balance1, TokenBalance) or self.balance1 < 0:
-            return False
-        if not isinstance(self.balance2, TokenBalance) or self.balance2 < 0:
-            return False
-
-        return True
-
     def __str__(self) -> str:
         """Represent as string."""
         return json.dumps(self.as_dict(), indent=2)
@@ -449,8 +399,3 @@ class Uniswap:
         if not isinstance(other, Uniswap):
             return NotImplemented
         return self.pool_id < other.pool_id
-
-
-def serialize_amms(amms: list[Uniswap]) -> UniswapsSerializedType:
-    """Return AMMs as dict of dicts."""
-    return {amm.pool_id: amm.as_dict() for amm in amms if amm.kind != AMMKind.UNISWAP}
