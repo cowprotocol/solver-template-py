@@ -158,10 +158,31 @@ class BatchAuction:
     #  SOLUTION PROCESSING METHODS  #
     #################################
 
-    def solve(self) -> None:
+    def solve(self):
         """
         Find an execution for the batch
         """
+        orders = self.orders
+        for i in range(len(orders) - 1):
+            for j in range(i + 1, len(orders)):
+                order_i, order_j = orders[i], orders[j]
+                if order_i.overlaps(order_j):
+                    order_i.execute(
+                        buy_amount_value=order_j.sell_amount,
+                        sell_amount_value=order_i.sell_amount,
+                    )
+                    order_j.execute(
+                        buy_amount_value=order_i.sell_amount,
+                        sell_amount_value=order_j.sell_amount,
+                    )
+                    # For sell Orders:
+                    # executedBuyAmount = executedSellAmount.mul(sellPrice).ceilDiv(buyPrice)
+                    token_a = self.token_info(order_i.sell_token)
+                    token_b = self.token_info(order_i.buy_token)
+                    # This is the sellPrice for order i
+                    self.prices[token_a.token] = order_j.sell_amount
+                    # This is the buyPrice of order i
+                    self.prices[token_b.token] = order_i.sell_amount
 
     def __str__(self) -> str:
         """Print batch auction data.

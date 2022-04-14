@@ -198,6 +198,24 @@ class Order:
     #  UTILITY METHODS  #`
     #####################
 
+    def overlaps(self, other: Order) -> bool:
+        """
+        Determine if one order can be matched with another.
+        opposite {buy|sell} tokens and matching prices
+        """
+        token_conditions = [
+            self.buy_token == other.sell_token,
+            self.sell_token == other.buy_token,
+        ]
+        if not all(token_conditions):
+            return False
+
+        common_token = self.sell_token
+
+        self_limit = self.max_limit.convert_unit(common_token)
+        other_limit = other.max_limit.convert_unit(common_token)
+        return self_limit < other_limit
+
     def is_executable(self, xrate: XRate, xrate_tol: Decimal = Decimal("1e-6")) -> bool:
         """Determine if the order limit price satisfies a given market rate.
 
