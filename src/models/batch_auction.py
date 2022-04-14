@@ -27,8 +27,8 @@ class BatchAuction:
     def __init__(
         self,
         tokens: dict[Token, TokenInfo],
-        orders: list[Order],
-        uniswaps: list[Uniswap],
+        orders: dict[str, Order],
+        uniswaps: dict[str, Uniswap],
         ref_token: Token,
         prices: Optional[dict] = None,
         name: str = "batch_auction",
@@ -37,34 +37,27 @@ class BatchAuction:
         """Initialize.
 
         Args:
-            tokens: list of tokens participating.
-            orders: list of Order objects.
-            uniswaps: list of Uniswap objects.
+            tokens: dict of tokens participating.
+            orders: dict of Order objects.
+            uniswaps: dict of Uniswap objects.
             ref_token: Reference Token object.
             prices: A dict of {token -> price}.
             name: Name of the batch auction instance.
             metadata: Some instance metadata.
 
         """
-        # Create attributes so that calling __repr__ on this instance
-        # before the ctor exits does not raise.
-        self._tokens: dict[Token, TokenInfo] = {}
-        self._orders: dict[str, Order] = {}
-        self._uniswaps: dict[str, Uniswap] = {}
+        self.name = name
+        self.metadata = metadata if metadata else {}
 
-        # Store list of participating tokens, orders, and uniswaps.
-        self._add_tokens(tokens)
-        self._add_orders(orders)
-        self._add_uniswaps(uniswaps)
+        self._tokens = tokens
+        self._orders = orders
+        self._uniswaps = uniswaps
 
         # Store reference token and (previous) prices.
         self.ref_token = ref_token
         self.prices = (
             prices if prices else {ref_token: self._tokens[ref_token].external_price}
         )
-
-        self.name = name
-        self.metadata = metadata if metadata else {}
 
     @classmethod
     def from_dict(cls, data: dict, name: str) -> BatchAuction:
@@ -78,34 +71,18 @@ class BatchAuction:
             The instance.
 
         """
-        if not isinstance(data, dict):
-            raise ValueError(f"Instance data must be a dict, not {type(data)}!")
-
         for key in ["tokens", "orders"]:
             if key not in data:
                 raise ValueError(f"Mandatory field '{key}' missing in instance data!")
 
         tokens = load_tokens(data["tokens"])
+        orders = load_orders(data["orders"])
+
+        uniswaps = load_amms(data.get("amms", {}))
         metadata = load_metadata(data.get("metadata", {}))
         prices = load_prices(data.get("prices", {}))
-        orders = load_orders(data["orders"])
-        uniswaps = load_amms(data.get("amms", {}))
+
         ref_token = select_ref_token(tokens)
-
-        log_str = "Loaded tokens:"
-        for token_info in tokens.values():
-            log_str += f"\n{token_info}"
-        logging.debug(log_str)
-
-        log_str = "Loaded orders:"
-        for order in orders:
-            log_str += f"\n{order}"
-        logging.debug(log_str)
-
-        log_str = "Loaded uniswaps:"
-        for uniswap in uniswaps:
-            log_str += f"\n{uniswap}"
-        logging.debug(log_str)
 
         return cls(
             tokens,
@@ -116,33 +93,6 @@ class BatchAuction:
             metadata=metadata,
             name=name,
         )
-
-    #######################################
-    #  HELPER METHODS FOR INITIALIZATION  #
-    #######################################
-
-    def _add_tokens(self, tokens: dict[Token, TokenInfo]) -> None:
-        """Add tokens to the stored tokens."""
-        for token, info in tokens.items():
-            if token in self._tokens:
-                logging.warning(f"Token <{token}> already exists!")
-            self._tokens[token] = info
-
-    def _add_orders(self, orders: list[Order]) -> None:
-        """Add orders to the list of orders."""
-        for order in orders:
-            if order.order_id in self._orders:
-                raise ValueError(f"Order pool_id <{order.order_id}> already exists!")
-            self._orders[order.order_id] = order
-
-    def _add_uniswaps(self, uniswaps: list[Uniswap]) -> None:
-        """Add pools to the list of uniswap pools."""
-        assert all(uni.is_valid() for uni in uniswaps)
-
-        for uni in uniswaps:
-            if uni.pool_id in self._uniswaps:
-                raise ValueError(f"Uniswap pool_id <{uni.pool_id}> already exists!")
-            self._uniswaps[uni.pool_id] = uni
 
     ####################
     #  ACCESS METHODS  #
@@ -171,26 +121,6 @@ class BatchAuction:
             raise ValueError(f"Token <{token}> not in batch auction!")
 
         return self._tokens[token]
-
-    def order(self, order_id: str) -> Order:
-        """Get the Order with the given pool_id."""
-        assert isinstance(order_id, str)
-
-        order = self._orders.get(order_id)
-        if order is None:
-            raise ValueError(f"Order <{order_id}> not in batch auction!")
-
-        return order
-
-    def uniswap(self, uniswap_id: str) -> Uniswap:
-        """Get the Uniswap with the given pool_id."""
-        assert isinstance(uniswap_id, str)
-
-        uniswap = self._uniswaps.get(uniswap_id)
-        if uniswap is None:
-            raise ValueError(f"Uniswap <{uniswap_id}> not in batch auction!")
-
-        return uniswap
 
     @property
     def chain(self) -> Chain:
@@ -281,28 +211,27 @@ def load_prices(
     return {Token(t): Decimal(p) for t, p in prices_serialized.items()}
 
 
-def load_orders(orders_serialized: OrdersSerializedType) -> list[Order]:
+def load_orders(orders_serialized: OrdersSerializedType) -> dict[str, Order]:
     """Load dict of orders as order pool_id -> order data.
 
     Args:
-        orders_serialized: dict of order pool_id -> order data dict.
+        orders_serialized: dict of order_id -> order data dict.
 
     Returns:
         A list of Order objects.
-
     """
-    if not isinstance(orders_serialized, dict):
-        raise ValueError(
-            f"The 'orders' field must be a dict, not {type(orders_serialized)}!"
-        )
-
-    return [
-        Order.from_dict(order_id, order_data)
-        for order_id, order_data in orders_serialized.items()
+    order_list = [
+        Order.from_dict(order_id, data) for order_id, data in orders_serialized.items()
     ]
+    result: dict[str, Order] = {}
+    for order in order_list:
+        if order.order_id in result:
+            raise ValueError(f"Order pool_id <{order.order_id}> already exists!")
+        result[order.order_id] = order
+    return result
 
 
-def load_amms(amms_serialized: UniswapsSerializedType) -> list[Uniswap]:
+def load_amms(amms_serialized: UniswapsSerializedType) -> dict[str, Uniswap]:
     """Load list of AMMs.
 
     NOTE: Currently, the code only supports Uniswap-style AMMs, i.e.,
@@ -315,19 +244,19 @@ def load_amms(amms_serialized: UniswapsSerializedType) -> list[Uniswap]:
         A list of Uniswap objects.
 
     """
-    if not isinstance(amms_serialized, dict):
-        raise ValueError(
-            f"The 'amms' field must be a dict, not {type(amms_serialized)}!"
-        )
-
-    amms = []
-
+    amm_list = []
     for amm_id, amm_data in amms_serialized.items():
         amm = Uniswap.from_dict(amm_id, amm_data)
         if amm is not None:
-            amms.append(amm)
+            amm_list.append(amm)
 
-    return sorted(amms, key=lambda a: a.pool_id)
+    results: dict[str, Uniswap] = {}
+    for uni in amm_list:
+        if uni.pool_id in results:
+            raise ValueError(f"Uniswap pool_id <{uni.pool_id}> already exists!")
+        results[uni.pool_id] = uni
+
+    return results
 
 
 def load_tokens(tokens_serialized: dict) -> TokenDict:
@@ -357,6 +286,8 @@ def load_tokens(tokens_serialized: dict) -> TokenDict:
                 except decimal.InvalidOperation:
                     pass
                 token_info[k] = val
+        if token in tokens_dict:
+            logging.warning(f"Token <{token}> already exists!")
         tokens_dict[token] = TokenInfo(token, **token_info)
 
     return tokens_dict

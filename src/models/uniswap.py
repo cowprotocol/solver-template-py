@@ -97,16 +97,14 @@ class Uniswap:
             A Uniswap object.
 
         """
-        attr_mandatory = ["kind", "reserves", "fee"]
-
-        for attr in attr_mandatory:
+        for attr in ["kind", "reserves", "fee"]:
             if attr not in amm_data:
                 raise ValueError(f"Missing field '{attr}' in amm <{amm_id}>!")
 
         kind = AMMKind(amm_data["kind"])
         reserves = amm_data.get("reserves")
-        input_weight = None
 
+        kwargs: Mapping = {}
         if kind == AMMKind.CONSTANT_PRODUCT:
             # Parse UniswapV2/Sushiswap pools.
             if not isinstance(reserves, dict):
@@ -114,7 +112,10 @@ class Uniswap:
                     f"AMM <{amm_id}>: 'reserves' must be a dict of Token -> amount!"
                 )
             if len(reserves) != 2:
-                message = f"AMM <{amm_id}>: ConstantProduct AMMs are only supported with 2 tokens!"
+                message = (
+                    f"AMM <{amm_id}>: "
+                    f"ConstantProduct AMMs are only supported with 2 tokens!"
+                )
                 logging.warning(message)
                 return None
             balance1, balance2 = [
@@ -144,6 +145,7 @@ class Uniswap:
                     "with 2 tokens and equal weights!"
                 )
                 return None
+
             balance1, balance2 = [
                 TokenBalance(
                     Decimal(b["balance"]),
@@ -152,29 +154,24 @@ class Uniswap:
                 for t, b in reserves.items()
             ]
             input_weight = list(reserves.values())[0]["weight"]
-
+            kwargs = {
+                "input_weight": input_weight,
+            }
         else:
             logging.warning(
                 f"AMM <{amm_id}>: type <{kind}> is currently not supported!"
             )
             return None
 
-        fee = Decimal(amm_data["fee"])
-
-        kwargs: Mapping
-        if input_weight:
-            kwargs = {
-                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
-                "kind": kind,
-                "input_weight": input_weight,
-            }
-        else:
-            kwargs = {
-                "cost": TokenBalance.parse(amm_data.get("cost"), allow_none=True),
-                "kind": kind,
-            }
-
-        return Uniswap(amm_id, balance1, balance2, fee, **kwargs)
+        return Uniswap(
+            pool_id=amm_id,
+            balance1=balance1,
+            balance2=balance2,
+            fee=Decimal(amm_data["fee"]),
+            cost=TokenBalance.parse(amm_data.get("cost"), allow_none=True),
+            kind=kind,
+            **kwargs,
+        )
 
     def as_dict(self) -> dict:
         """Return AMM object as dictionary.
@@ -230,7 +227,8 @@ class Uniswap:
             sequence, position = self.exec_plan_coords.as_tuple()
             if sequence is None or position is None:
                 logging.warning(
-                    f"AMM <{self.pool_id}>: has balance updates with invalid execution plan"
+                    f"AMM <{self.pool_id}>: "
+                    f"has balance updates with invalid execution plan"
                 )
                 exec_plan = None
             else:
@@ -262,12 +260,12 @@ class Uniswap:
     @property
     def token1(self) -> Token:
         """Returns token1"""
-        return self._balance1.token
+        return self.balance1.token
 
     @property
     def token2(self) -> Token:
         """Returns token2"""
-        return self._balance2.token
+        return self.balance2.token
 
     @property
     def tokens(self) -> set[Token]:
@@ -378,15 +376,6 @@ class Uniswap:
     def get_marginal_xrate(self) -> XRate:
         """Derive the marginal exchange rate from the pool balances."""
         return XRate(self.balance1, self.balance2)
-
-    def is_valid(self) -> bool:
-        """Validate the pool."""
-        if not isinstance(self.balance1, TokenBalance) or self.balance1 < 0:
-            return False
-        if not isinstance(self.balance2, TokenBalance) or self.balance2 < 0:
-            return False
-
-        return True
 
     def __str__(self) -> str:
         """Represent as string."""
