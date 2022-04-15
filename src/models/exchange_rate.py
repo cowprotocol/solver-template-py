@@ -40,10 +40,8 @@ class ExchangeRate:
         Args:
             token1_price: Tuple of (Token, price).
             token2_price: Tuple of (Token, price).
-
         Returns:
-            The ExchangeRate.
-
+            The ExchangeRate between the input tokens at the given prices.
         """
         # Validate Input
         balances = []

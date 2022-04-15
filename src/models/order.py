@@ -219,14 +219,9 @@ class Order:
         if not all(token_conditions):
             return False
 
-        # To avoid using max_limit we can compare like this:
         return (
             self.buy_amount * other.buy_amount <= other.sell_amount * self.sell_amount
         )
-        # common_token = self.sell_token
-        # self_limit = self.max_limit.convert_unit(common_token)
-        # other_limit = other.max_limit.convert_unit(common_token)
-        # return self_limit < other_limit
 
     def match_type(self, other: Order) -> Optional[OrderMatchType]:
         """Determine to what extent two orders match"""
@@ -234,14 +229,14 @@ class Order:
             return None
 
         if (
-            self.buy_amount <= other.sell_amount
-            and self.sell_amount <= other.buy_amount
+            self.buy_amount < other.sell_amount
+            and self.sell_amount < other.buy_amount
         ):
             return OrderMatchType.LHS_FILLED
 
         if (
-            self.buy_amount >= other.sell_amount
-            and self.sell_amount >= other.buy_amount
+            self.buy_amount > other.sell_amount
+            and self.sell_amount > other.buy_amount
         ):
             return OrderMatchType.RHS_FILLED
 
@@ -264,14 +259,9 @@ class Order:
                 f"match: {xrate} vs. <{buy_token}> | <{sell_token}>!"
             )
 
-        # Buy @ AT MOST limit rate.
-        max_limit = self.max_limit
-        if max_limit is None:  # market order.
-            return True
-
         assert xrate_tol >= 0
         converted_buy = xrate.convert_unit(buy_token)
-        converted_sell = max_limit.convert_unit(buy_token)
+        converted_sell = self.max_limit.convert_unit(buy_token)
         return bool(converted_buy <= (converted_sell * (1 + xrate_tol)))
 
     def execute(
