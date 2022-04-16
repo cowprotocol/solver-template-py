@@ -4,10 +4,10 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Optional, Any, Mapping
+from typing import Optional, Any
 
 from src.models.exchange_rate import ExchangeRate as XRate
-from src.models.token import Token, TokenBalance, Amount
+from src.models.token import Token, TokenBalance
 from src.models.types import NumericType
 from src.util.enums import AMMKind
 from src.util.exec_plan_coords import ExecPlanCoords
@@ -19,7 +19,7 @@ UniswapsSerializedType = dict[str, UniswapSerializedType]
 
 
 class Uniswap:
-    """Representation of a Uniswap pool.
+    """Representation of an Automated Market Maker.
 
     An Uniswap pool is represented by two token balances.
     """
@@ -33,7 +33,7 @@ class Uniswap:
         cost: Optional[TokenBalance] = None,
         mandatory: bool = False,
         kind: AMMKind = AMMKind.UNISWAP,
-        **kwargs: Mapping[str, Any],
+        weight: float = 1,
     ):
         """Initialize.
 
@@ -46,56 +46,43 @@ class Uniswap:
         Kwargs:
             cost: Cost of using the Uniswap pool.
             mandatory: Is pool usage mandatory when price moves, or not.
-
         """
-        # Store given pool pool_id.
-        self.pool_id = pool_id
-
-        # Init pool balances.
-        self.balance1 = balance1
-        self.balance2 = balance2
-        self.fee = fee if isinstance(fee, Decimal) else Decimal(fee)
-        self.cost = cost
-        self.mandatory = mandatory
-        self.kind = kind
-
-        self._balance_update1 = TokenBalance.default(balance1.token)
-        self._balance_update2 = TokenBalance.default(balance1.token)
-
-        self._exec_plan_coords = ExecPlanCoords(None, None)
-
         # Consistency checks.
         if balance1.token == balance2.token:
             logging.error("Pool tokens cannot be equal!")
             raise ValueError
 
         if not all(tb.is_positive() for tb in [balance1, balance2]):
-            message = (
-                f"Uniswap <{self.pool_id}>: balance1={balance1} balance2={balance2}"
-            )
+            message = f"Uniswap <{pool_id}>: balance1={balance1} balance2={balance2}"
             logging.error(message)
             raise ValueError("Both token balances must be positive!")
 
-        # Store additional keyword-arguments.
-        for k, val in kwargs.items():
-            setattr(self, k, val)
+        # Store given pool pool_id.
+        self.pool_id = pool_id
+        self.balance1 = balance1
+        self.balance2 = balance2
+        self.fee = fee if isinstance(fee, Decimal) else Decimal(fee)
+        self.cost = cost
+        self.mandatory = mandatory
+        self.kind = kind
+        self.weight = weight
+
+        self._balance_update1: Optional[TokenBalance] = None
+        self._balance_update2: Optional[TokenBalance] = None
+        self.exec_plan_coords: Optional[ExecPlanCoords] = None
 
     @classmethod
     def from_dict(
         cls, amm_id: str, amm_data: UniswapSerializedType
     ) -> Optional[Uniswap]:
-        """Read amm object from data dict.
-
+        """Construct AMM object from data dict.
         NOTE: Currently, the code only supports Uniswap-style AMMs, i.e.,
         constant-product pools with two tokens and equal weights.
-
         Args:
             amm_id: AMM pool_id.
             amm_data: Dict of uniswap data.
-
         Returns:
             A Uniswap object.
-
         """
         for attr in ["kind", "reserves", "fee"]:
             if attr not in amm_data:
@@ -103,8 +90,8 @@ class Uniswap:
 
         kind = AMMKind(amm_data["kind"])
         reserves = amm_data.get("reserves")
+        weight = 0.5
 
-        kwargs: Mapping = {}
         if kind == AMMKind.CONSTANT_PRODUCT:
             # Parse UniswapV2/Sushiswap pools.
             if not isinstance(reserves, dict):
@@ -146,17 +133,12 @@ class Uniswap:
                 )
                 return None
 
+            weight = list(reserves.values())[0]["weight"]
             balance1, balance2 = [
-                TokenBalance(
-                    Decimal(b["balance"]),
-                    Token(t),
-                )
+                TokenBalance(Decimal(b["balance"]), Token(t))
                 for t, b in reserves.items()
             ]
-            input_weight = list(reserves.values())[0]["weight"]
-            kwargs = {
-                "input_weight": input_weight,
-            }
+
         else:
             logging.warning(
                 f"AMM <{amm_id}>: type <{kind}> is currently not supported!"
@@ -170,7 +152,7 @@ class Uniswap:
             fee=Decimal(amm_data["fee"]),
             cost=TokenBalance.parse(amm_data.get("cost"), allow_none=True),
             kind=kind,
-            **kwargs,
+            weight=weight,
         )
 
     def as_dict(self) -> dict:
@@ -180,17 +162,16 @@ class Uniswap:
         constant-product pools with two tokens and equal weights.
 
         """
-        token1 = str(self.balance1.token)
-        token2 = str(self.balance2.token)
+        token1 = str(self.token1)
+        token2 = str(self.token2)
         balance1 = decimal_to_str(self.balance1.as_decimal())
         balance2 = decimal_to_str(self.balance2.as_decimal())
 
         reserves: str | dict
         if self.kind == AMMKind.WEIGHTED_PRODUCT:
-            weight = getattr(self, "input_weight", "1")
             reserves = {
-                token1: {"balance": balance1, "weight": weight},
-                token2: {"balance": balance2, "weight": weight},
+                token1: {"balance": balance1, "weight": self.weight},
+                token2: {"balance": balance2, "weight": self.weight},
             }
         else:
             reserves = {token1: balance1, token2: balance2}
@@ -204,6 +185,7 @@ class Uniswap:
 
         execution = {}
         if self.is_executed():
+            assert self.balance_update1 is not None and self.balance_update2 is not None
             b1_update = self.balance_update1.as_decimal()
             b2_update = self.balance_update2.as_decimal()
             # One update has to be positive and the other negative.
@@ -224,18 +206,14 @@ class Uniswap:
                 exec_buy_amount = b2_update
                 exec_sell_amount = -b1_update
 
-            sequence, position = self.exec_plan_coords.as_tuple()
-            if sequence is None or position is None:
+            if self.exec_plan_coords is None:
                 logging.warning(
                     f"AMM <{self.pool_id}>: "
                     f"has balance updates with invalid execution plan"
                 )
                 exec_plan = None
             else:
-                exec_plan = {
-                    "sequence": str(sequence),
-                    "position": str(position),
-                }
+                exec_plan = self.exec_plan_coords.as_dict()
 
             execution = {
                 "sell_token": str(sell_token),
@@ -273,40 +251,14 @@ class Uniswap:
         return {self.balance1.token, self.balance2.token}
 
     @property
-    def sorted_tokens(self) -> list[Token]:
-        """Return a tuple with both tokens sorted."""
-        return list(sorted(self.tokens))
-
-    @property
-    def balance_update1(self) -> TokenBalance:
+    def balance_update1(self) -> Optional[TokenBalance]:
         """Return the traded amount of the first token."""
         return self._balance_update1
 
-    @balance_update1.setter
-    def balance_update1(self, value: Amount) -> None:
-        update = TokenBalance.parse_amount(value, self.balance1.token)
-        if update is not None:
-            self._balance_update1 = update
-        else:
-            logging.warning("Attempted to update with None, left as is.")
-
     @property
-    def balance_update2(self) -> TokenBalance:
+    def balance_update2(self) -> Optional[TokenBalance]:
         """Return the traded amount of the second token."""
         return self._balance_update2
-
-    @balance_update2.setter
-    def balance_update2(self, value: Optional[Amount]) -> None:
-        update = TokenBalance.parse_amount(value, self.balance2.token)
-        if update is not None:
-            self._balance_update2 = update
-        else:
-            logging.warning("Attempted to update with None, left as is.")
-
-    @property
-    def exec_plan_coords(self) -> ExecPlanCoords:
-        """Return the coordinates of this uniswap in the execution plan."""
-        return self._exec_plan_coords
 
     def other_token(self, token: Token) -> Token:
         """Returns the "other" token that is not token."""
@@ -317,61 +269,27 @@ class Uniswap:
     #  UTILITY METHODS  #
     #####################
 
-    def balance(self, token: Token) -> TokenBalance:
-        """Get the current balance of the given token.
-        Args:
-            token: A Token.
-
-        Returns: The TokenBalance of the given token.
-        """
-
-        if token == self.balance1.token:
-            return self.balance1
-
-        if token == self.balance2.token:
-            return self.balance2
-
-        raise ValueError(f"Token {token} is not part of AMM {self.pool_id}!")
-
     def execute(
         self,
         b1_update: NumericType,
         b2_update: NumericType,
-        amount_tol: Decimal = Decimal("1e-8"),
     ) -> None:
         """Execute the uniswap at given amounts.
 
         Args:
             b1_update: Traded amount of token1.
             b2_update: Traded amount of token2.
-            amount_tol: Accepted violation of the limit buy/sell amount constraints.
         """
         assert isinstance(b1_update, (int, float, Decimal))
         assert isinstance(b2_update, (int, float, Decimal))
 
-        token1 = self.balance1.token
-        token2 = self.balance2.token
-
-        balance_update1 = TokenBalance(b1_update, token1)
-        balance_update2 = TokenBalance(b2_update, token2)
-
-        # if any amount is very small, set to zero.
-        if any(
-            [
-                abs(balance_update1) <= TokenBalance(amount_tol, token1),
-                abs(balance_update2) <= TokenBalance(amount_tol, token2),
-            ]
-        ):
-            balance_update1 = TokenBalance(0.0, token1)
-            balance_update2 = TokenBalance(0.0, token2)
-
         # Store execution information.
-        self.balance_update1 = balance_update1
-        self.balance_update2 = balance_update2
+        self._balance_update1 = TokenBalance(b1_update, self.token1)
+        self._balance_update2 = TokenBalance(b2_update, self.token2)
 
     def is_executed(self) -> bool:
         """True if amm is executed otherwise false"""
-        return not self.balance_update1.is_zero() and not self.balance_update2.is_zero()
+        return self.balance_update1 is not None and self.balance_update2 is not None
 
     def get_marginal_xrate(self) -> XRate:
         """Derive the marginal exchange rate from the pool balances."""

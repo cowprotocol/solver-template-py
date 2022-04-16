@@ -1,5 +1,4 @@
 """Execution Plan Coordinates"""
-from typing import Optional
 
 
 class ExecPlanCoords:
@@ -10,10 +9,13 @@ class ExecPlanCoords:
         * Position within that sequence.
     """
 
-    def __init__(self, sequence: Optional[int], position: Optional[int]):
+    def __init__(self, sequence: int, position: int):
         self.sequence = sequence
         self.position = position
 
-    def as_tuple(self) -> tuple[Optional[int], Optional[int]]:
-        """Returns tuple (sequence, position)"""
-        return self.sequence, self.position
+    def as_dict(self) -> dict[str, str]:
+        """returns string dict of class"""
+        return {
+            "sequence": str(self.sequence),
+            "position": str(self.position),
+        }

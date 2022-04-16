@@ -147,11 +147,6 @@ class TokenBalance:
             raise ValueError(f"Token balance must be finite, not {self._balance}!")
 
     @classmethod
-    def default(cls, token: Token) -> TokenBalance:
-        """Default token balance of zero for given token"""
-        return cls(0, token)
-
-    @classmethod
     def parse(
         cls,
         token_amount_serialized: Optional[TokenAmountSerializedType],
@@ -249,11 +244,7 @@ class TokenBalance:
         raise ValueError(f"Cannot compare TokenBalance and type <{type(other)}>!")
 
     def __ne__(self, other: object) -> bool:
-        """Non-equality operator.
-
-        Args:
-            other: Another TokenBalance, or zero.
-        """
+        """Non-equality operator"""
         return not self == other
 
     def __lt__(self, other: TokenBalance | NumericType) -> bool:

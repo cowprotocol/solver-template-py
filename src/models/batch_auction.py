@@ -35,7 +35,6 @@ class BatchAuction:
         metadata: Optional[dict] = None,
     ):
         """Initialize.
-
         Args:
             tokens: dict of tokens participating.
             orders: dict of Order objects.
@@ -44,7 +43,6 @@ class BatchAuction:
             prices: A dict of {token -> price}.
             name: Name of the batch auction instance.
             metadata: Some instance metadata.
-
         """
         self.name = name
         self.metadata = metadata if metadata else {}
@@ -156,32 +154,6 @@ class BatchAuction:
 
     def solve(self) -> None:
         """Solve Batch"""
-        sell_orders = [order for order in self.orders if order.is_sell_order]
-        for i in range(len(sell_orders) - 1):
-            for j in range(i + 1, len(sell_orders)):
-                order_i, order_j = sell_orders[i], sell_orders[j]
-                one_executed = any([order_i.is_executed(), order_j.is_executed()])
-                if (
-                    order_i.match_type(order_j) == OrderMatchType.BOTH_FILLED
-                    and not one_executed
-                ):
-                    print(f"Found matching orders {order_i} with {order_j}")
-                    order_i.execute(
-                        buy_amount_value=order_j.sell_amount,
-                        sell_amount_value=order_i.sell_amount,
-                    )
-                    order_j.execute(
-                        buy_amount_value=order_i.sell_amount,
-                        sell_amount_value=order_j.sell_amount,
-                    )
-                    # For sell Orders:
-                    # executedBuyAmount = executedSellAmount.mul(sellPrice).ceilDiv(buyPrice)
-                    token_a = self.token_info(order_i.sell_token)
-                    token_b = self.token_info(order_i.buy_token)
-                    # This is the sellPrice for order i
-                    self.prices[token_a.token] = order_j.sell_amount
-                    # This is the buyPrice of order i
-                    self.prices[token_b.token] = order_i.sell_amount
 
     #################################
     #  SOLUTION PROCESSING METHODS  #

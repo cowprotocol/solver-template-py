@@ -149,19 +149,17 @@ if __name__ == "__main__":
     #     help="Write auxiliary instance and optimization files, or not.",
     # )
 
-    # TODO - Add configurable log level.
-    # parser.add_argument(
-    #     "--log-level",
-    #     type=str,
-    #     default="warning",
-    #     help="Log level",
-    # )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="info",
+        help="Log level",
+    )
 
     SERVER_ARGS = parser.parse_args()
-
     uvicorn.run(
         "__main__:app",
         host=server_settings.host,
         port=server_settings.port,
-        log_level="warning",
+        log_level=SERVER_ARGS.log_level,
     )
