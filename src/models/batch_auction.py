@@ -8,7 +8,7 @@ import logging
 from decimal import Decimal
 from typing import Any, Optional
 
-from src.models.order import Order, OrdersSerializedType, OrderMatchType
+from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
     Token,
     TokenInfo,
