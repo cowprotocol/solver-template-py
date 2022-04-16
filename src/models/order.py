@@ -92,11 +92,9 @@ class Order:
         self.fee: Optional[TokenBalance] = fee
         self.cost: Optional[TokenBalance] = cost
 
+        # Stuff that isn't part of the constructor parameters.
         self.exec_buy_amount: Optional[TokenBalance] = None
         self.exec_sell_amount: Optional[TokenBalance] = None
-
-        self.exec_rate: Optional[XRate] = None
-        self.exec_volume: Optional[Decimal] = None
 
     @classmethod
     def from_dict(cls, order_id: str, data: OrderSerializedType) -> Order:
@@ -135,7 +133,6 @@ class Order:
     def as_dict(self) -> OrderSerializedType:
         """Return Order object as dictionary."""
         # Currently, only limit buy or sell orders be handled.
-
         order_dict = {
             "sell_token": str(self.sell_token),
             "buy_token": str(self.buy_token),
@@ -143,8 +140,12 @@ class Order:
             "buy_amount": decimal_to_str(self.buy_amount),
             "allow_partial_fill": self.allow_partial_fill,
             "is_sell_order": self.is_sell_order,
-            "exec_sell_amount": "0",
-            "exec_buy_amount": "0",
+            "exec_sell_amount": decimal_to_str(self.exec_sell_amount.as_decimal())
+            if self.exec_sell_amount is not None
+            else "0",
+            "exec_buy_amount": decimal_to_str(self.exec_buy_amount.as_decimal())
+            if self.exec_buy_amount is not None
+            else "0",
         }
 
         if self.fee is not None:
@@ -159,16 +160,6 @@ class Order:
                 "amount": decimal_to_str(self.cost.as_decimal()),
             }
 
-        if self.exec_sell_amount is not None:
-            order_dict["exec_sell_amount"] = decimal_to_str(
-                self.exec_sell_amount.as_decimal()
-            )
-
-        if self.exec_buy_amount is not None:
-            order_dict["exec_buy_amount"] = decimal_to_str(
-                self.exec_buy_amount.as_decimal()
-            )
-
         return order_dict
 
     @property
@@ -181,14 +172,14 @@ class Order:
 
     @property
     def max_buy_amount(self) -> Optional[TokenBalance]:
-        """true if order is buy order"""
-        if self.is_buy_order:
+        """None for sell-orders"""
+        if not self.is_sell_order:
             return TokenBalance.parse_amount(self.buy_amount, self.buy_token)
         return None
 
     @property
     def max_sell_amount(self) -> Optional[TokenBalance]:
-        """true if order is buy order"""
+        """None for buy-orders"""
         if self.is_sell_order:
             return TokenBalance.parse_amount(self.sell_amount, self.sell_token)
         return None
@@ -197,11 +188,6 @@ class Order:
     def tokens(self) -> set[Token]:
         """Return the buy and sell tokens."""
         return {self.buy_token, self.sell_token}
-
-    @property
-    def is_buy_order(self) -> bool:
-        """true if order is buy order"""
-        return not self.is_sell_order
 
     #####################
     #  UTILITY METHODS  #`
@@ -350,12 +336,6 @@ class Order:
         # Store execution information.
         self.exec_buy_amount = buy_amount
         self.exec_sell_amount = sell_amount
-
-        if buy_token_price > 0 and sell_token_price > 0:
-            self.exec_rate = XRate.from_prices(
-                (buy_token, buy_token_price), (sell_token, sell_token_price)
-            )
-            self.exec_volume = (buy_amount * buy_token_price).as_decimal()
 
     def is_executed(self) -> bool:
         """Check if order has already been executed."""
