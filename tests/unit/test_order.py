@@ -16,8 +16,8 @@ class MyTestCase(unittest.TestCase):
             {
                 "sell_token": self.token_a,
                 "buy_token": self.token_b,
-                "sell_amount": "12000000000000000000",
-                "buy_amount": "100000000000000000000",
+                "sell_amount": "12",
+                "buy_amount": "100",
                 "allow_partial_fill": False,
                 "is_sell_order": True,
                 "fee": {
@@ -38,8 +38,8 @@ class MyTestCase(unittest.TestCase):
             {
                 "sell_token": self.token_b,
                 "buy_token": self.token_a,
-                "sell_amount": "100000000000000000000",
-                "buy_amount": "10000000000000000000",
+                "sell_amount": "100",
+                "buy_amount": "10",
                 "allow_partial_fill": False,
                 "is_sell_order": True,
                 "fee": {
