@@ -228,16 +228,10 @@ class Order:
         if not self.overlaps(other):
             return None
 
-        if (
-            self.buy_amount < other.sell_amount
-            and self.sell_amount < other.buy_amount
-        ):
+        if self.buy_amount < other.sell_amount and self.sell_amount < other.buy_amount:
             return OrderMatchType.LHS_FILLED
 
-        if (
-            self.buy_amount > other.sell_amount
-            and self.sell_amount > other.buy_amount
-        ):
+        if self.buy_amount > other.sell_amount and self.sell_amount > other.buy_amount:
             return OrderMatchType.RHS_FILLED
 
         return OrderMatchType.BOTH_FILLED
