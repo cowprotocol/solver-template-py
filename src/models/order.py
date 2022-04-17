@@ -5,7 +5,7 @@ import json
 import logging
 from decimal import Decimal
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 
 from src.models.exchange_rate import ExchangeRate as XRate
@@ -248,8 +248,8 @@ class Order:
         self,
         buy_amount_value: NumericType,
         sell_amount_value: NumericType,
-        buy_token_price: float | Decimal = 0,
-        sell_token_price: float | Decimal = 0,
+        buy_token_price: Union[float, Decimal] = 0,
+        sell_token_price: Union[float, Decimal] = 0,
         amount_tol: Decimal = Decimal("1e-8"),
         xrate_tol: Decimal = Decimal("1e-6"),
     ) -> None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from decimal import Decimal
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.token import Token, TokenBalance
@@ -13,7 +13,7 @@ from src.util.enums import AMMKind
 from src.util.exec_plan_coords import ExecPlanCoords
 from src.util.numbers import decimal_to_str
 
-FeeType = float | Decimal
+FeeType = Union[float, Decimal]
 UniswapSerializedType = dict[str, Any]
 UniswapsSerializedType = dict[str, UniswapSerializedType]
 
@@ -167,7 +167,7 @@ class Uniswap:
         balance1 = decimal_to_str(self.balance1.as_decimal())
         balance2 = decimal_to_str(self.balance2.as_decimal())
 
-        reserves: str | dict
+        reserves: Union[str, dict]
         if self.kind == AMMKind.WEIGHTED_PRODUCT:
             reserves = {
                 token1: {"balance": balance1, "weight": self.weight},

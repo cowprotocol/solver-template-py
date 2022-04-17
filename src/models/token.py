@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from decimal import Decimal, getcontext
-from typing import Optional
+from typing import Optional, Union
 
 from src.models.types import NumericType
 from src.util.constants import Constants
@@ -125,7 +125,7 @@ def select_token_with_highest_normalize_priority(
 
 TokenDict = dict[Token, TokenInfo]
 TokenSerializedType = str
-TokenAmountSerializedType = tuple[str | NumericType, TokenSerializedType]
+TokenAmountSerializedType = tuple[Union[str, NumericType], TokenSerializedType]
 
 
 class TokenBalance:
@@ -247,7 +247,7 @@ class TokenBalance:
         """Non-equality operator"""
         return not self == other
 
-    def __lt__(self, other: TokenBalance | NumericType) -> bool:
+    def __lt__(self, other: Union[TokenBalance, NumericType]) -> bool:
         """Less-than operator.
 
         Args:
@@ -266,7 +266,7 @@ class TokenBalance:
 
         raise ValueError(f"Cannot compare TokenBalance and type <{type(other)}>")
 
-    def __le__(self, other: TokenBalance | NumericType) -> bool:
+    def __le__(self, other: Union[TokenBalance, NumericType]) -> bool:
         """Less-than-or-equal operator.
 
         Args:
@@ -274,7 +274,7 @@ class TokenBalance:
         """
         return self < other or self == other
 
-    def __gt__(self, other: TokenBalance | NumericType) -> bool:
+    def __gt__(self, other: Union[TokenBalance, NumericType]) -> bool:
         """Greater-than operator.
 
         Args:
@@ -282,7 +282,7 @@ class TokenBalance:
         """
         return not self <= other
 
-    def __ge__(self, other: TokenBalance | NumericType) -> bool:
+    def __ge__(self, other: Union[TokenBalance, NumericType]) -> bool:
         """Greater-than-or-equal operator.
 
         Args:
@@ -298,7 +298,7 @@ class TokenBalance:
         """Absolute value operator."""
         return TokenBalance(abs(self._balance), self.token)
 
-    def __add__(self, other: TokenBalance | NumericType) -> TokenBalance:
+    def __add__(self, other: Union[TokenBalance, NumericType]) -> TokenBalance:
         """Addition operator.
 
         Args:
@@ -320,7 +320,7 @@ class TokenBalance:
 
         raise ValueError(f"Cannot add <{type(other)}> and TokenBalance!")
 
-    def __radd__(self, other: TokenBalance | NumericType) -> TokenBalance:
+    def __radd__(self, other: Union[TokenBalance, NumericType]) -> TokenBalance:
         """Addition-from-right operator.
 
         Args:
@@ -328,7 +328,7 @@ class TokenBalance:
         """
         return self + other
 
-    def __sub__(self, other: TokenBalance | NumericType) -> TokenBalance:
+    def __sub__(self, other: Union[TokenBalance, NumericType]) -> TokenBalance:
         """Subtraction operator.
 
         Args:
@@ -336,7 +336,7 @@ class TokenBalance:
         """
         return self + (-other)
 
-    def __rsub__(self, other: TokenBalance | NumericType) -> TokenBalance:
+    def __rsub__(self, other: Union[TokenBalance, NumericType]) -> TokenBalance:
         """Subtraction operator.
 
         Args:
@@ -363,7 +363,7 @@ class TokenBalance:
         """
         return self * other
 
-    def __truediv__(self, other: TokenBalance | NumericType) -> TokenBalance:
+    def __truediv__(self, other: Union[TokenBalance, NumericType]) -> TokenBalance:
         """Division operator.
 
         Args:
@@ -401,4 +401,4 @@ class TokenBalance:
         return str(self)
 
 
-Amount = TokenBalance | float | int | Decimal
+Amount = Union[TokenBalance, NumericType]
