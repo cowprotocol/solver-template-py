@@ -1,0 +1,4 @@
+[MASTER]
+disable=fixme,too-few-public-methods,too-many-instance-attributes,too-many-arguments,logging-fstring-interpolation,too-many-locals,duplicate-code,    def buy_amount(self) -> Decimal:
+
+extension-pkg-allow-list=pydantic

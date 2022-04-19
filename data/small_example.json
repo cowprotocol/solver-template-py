@@ -1,0 +1,314 @@
+{
+  "tokens": {
+    "0x177127622c4a00f3d409b75571e12cb3c8973d3c": {
+      "decimals": 18,
+      "alias": "COW",
+      "external_price": 0.45017049310571666,
+      "normalize_priority": 0,
+      "internal_buffer": "7015800954345235918043"
+    },
+    "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": {
+      "decimals": 18,
+      "alias": "WETH",
+      "external_price": 3000.891285415493,
+      "normalize_priority": 0,
+      "internal_buffer": "573049294721507372"
+    },
+    "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": {
+      "decimals": 6,
+      "alias": "USDC",
+      "external_price": null,
+      "normalize_priority": 0,
+      "internal_buffer": "623285390"
+    },
+    "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": {
+      "decimals": 18,
+      "alias": "WXDAI",
+      "external_price": 1.0,
+      "normalize_priority": 1,
+      "internal_buffer": "1462392042995826309875"
+    }
+  },
+  "orders": {
+    "0": {
+      "sell_token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+      "buy_token": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
+      "sell_amount": "12000000000000000000",
+      "buy_amount": "100000000000000000000",
+      "allow_partial_fill": false,
+      "is_sell_order": true,
+      "fee": {
+        "amount": "115995469750",
+        "token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"
+      },
+      "cost": {
+        "amount": "321627750000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "is_liquidity_order": false,
+      "mandatory": false,
+      "has_atomic_execution": false
+    },
+    "1": {
+      "sell_token": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
+      "buy_token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
+      "sell_amount": "100000000000000000000",
+      "buy_amount": "10000000000000000000",
+      "allow_partial_fill": false,
+      "is_sell_order": true,
+      "fee": {
+        "amount": "115995469750",
+        "token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1"
+      },
+      "cost": {
+        "amount": "321627750000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "is_liquidity_order": false,
+      "mandatory": false,
+      "has_atomic_execution": false
+    }
+  },
+  "amms": {
+    "0": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "2287989128381591343",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "1007038230838126034"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "1": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "2180532944296",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "2174634715149124817637856"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "2": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "170156453502161835",
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "511510625"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "3": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "14078483442516189840",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "42448974815042756432777"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "4": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "57085873974360172",
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "9811310893524"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "5": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "203595149362",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "203435681684302344278234"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "6": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "68751669412615145943",
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "30941870"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "7": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "1351303562283649601",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "594705071040441228"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "8": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "8924746518352797499",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "26876201972560924233860"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "9": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "1116060088457271",
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "3382413"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "10": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "431012081242526",
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "637"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "11": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "693310602896589672028",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "2097830773557624263396314"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "12": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "232855103028",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "232878267041239073118599"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "13": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "155455141264616753008",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "70000266796002910413"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "14": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "1146448176615081",
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "3458045"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "15": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x177127622c4a00f3d409b75571e12cb3c8973d3c": "1368237000249912531662317",
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "205800069191081940356"
+      },
+      "fee": "0.0025",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "16": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1": "2121757817602532415",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "6388542347053342159973"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    },
+    "17": {
+      "kind": "ConstantProduct",
+      "reserves": {
+        "0xddafbb505ad214d7b80b1f830fccc89b60fb7a83": "4080009153",
+        "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d": "4070477982741939388872"
+      },
+      "fee": "0.003",
+      "cost": {
+        "amount": "459275600000000",
+        "token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+      },
+      "mandatory": false
+    }
+  },
+  "metadata": {
+    "environment": "xDAI",
+    "auction_id": 20,
+    "gas_price": 4850000000.0,
+    "native_token": "0xe91d153e0b41518a2ce8dd3d7944fa863463a97d"
+  }
+}
