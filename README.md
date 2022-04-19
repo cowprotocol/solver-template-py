@@ -50,13 +50,14 @@ or without an env file (as described in
 the [How to Write a Solver Tutorial](https://docs.cow.fi/tutorials/how-to-write-a-solver))
 
 ```shell
-docker run -it --rm bh2smith/solver \
+docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver \
 --orderbook-url https://protocol-xdai.dev.gnosisdev.com \
 --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
 --node-url "https://rpc.xdaichain.com" \
 --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
 --solver-account 0x7942a2b3540d1ec40b2740896f87aecb2a588731 \
---solvers CowDexAg --transaction-strategy DryRun
+--solvers CowDexAg \
+--transaction-strategy DryRun
 ```
 
 ## Without Docker
@@ -68,7 +69,8 @@ git clone https://github.com/cowprotocol/services.git
 ```
 
 ```shell
-cargo run -p solver --  --orderbook-url https://protocol-xdai.dev.gnosisdev.com \
+cargo run -p solver -- \
+    --orderbook-url https://protocol-xdai.dev.gnosisdev.com \
     --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
     --node-url "https://rpc.xdaichain.com" \
     --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
@@ -91,3 +93,4 @@ sent to your solver
   Specification: https://docs.cow.fi/off-chain-services/in-depth-solver-specification
 - Settlement Contract (namely the settle
   method): https://github.com/cowprotocol/contracts/blob/ff6fb7cad7787b8d43a6468809cacb799601a10e/src/contracts/GPv2Settlement.sol#L121-L143
+- Interaction Model (Currently missing from this framework): https://github.com/cowprotocol/services/blob/cda5e36db34c55e7bf9eb4ea8b6e36ecb046f2b2/crates/shared/src/http_solver/model.rs#L125-L130
