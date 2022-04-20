@@ -11,7 +11,10 @@ from typing import Optional, Any, Union
 from src.models.exchange_rate import ExchangeRate as XRate
 from src.models.token import Token, TokenBalance
 from src.models.types import NumericType
-from src.util.constants import Constants
+from src.util.constants import (
+    RAISE_ON_MAX_SELL_AMOUNT_VIOLATION,
+    RAISE_ON_LIMIT_XRATE_VIOLATION,
+)
 from src.util.numbers import decimal_to_str
 
 OrderSerializedType = dict[str, Any]
@@ -38,6 +41,8 @@ class Order:
     the order represents a classical limit {buy|sell} order,
     a cost-bounded {buy|sell} order or a {buy|sell} market order.
     """
+
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
@@ -303,7 +308,7 @@ class Order:
                     f"sell (max)  : {ymax.balance}"
                 )
                 logging.error(message)
-                if Constants.RAISE_ON_MAX_SELL_AMOUNT_VIOLATION:
+                if RAISE_ON_MAX_SELL_AMOUNT_VIOLATION:
                     raise ValueError(message)
             sell_amount = min(sell_amount, ymax)
 
@@ -330,7 +335,7 @@ class Order:
                     f"limit (max): {self.max_limit}"
                 )
                 logging.error(message)
-                if Constants.RAISE_ON_LIMIT_XRATE_VIOLATION:
+                if RAISE_ON_LIMIT_XRATE_VIOLATION:
                     raise ValueError(message)
 
         # Store execution information.
