@@ -6,15 +6,15 @@ from __future__ import annotations
 import argparse
 import decimal
 import logging
-from src.util.numbers import decimal_to_str
-
 import uvicorn
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from pydantic import BaseSettings
 
 from src.models.batch_auction import BatchAuction
 from src.models.solver_args import SolverArgs
+from src.util.numbers import decimal_to_str
 from src.util.schema import (
     BatchAuctionModel,
     SettledBatchAuctionModel,
@@ -70,8 +70,14 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
 
     sample_output = {
         "ref_token": batch.ref_token.value,
-        "orders": {order.order_id: order.as_dict() for order in batch.orders if order.is_executed()},
-        "prices": {str(key): decimal_to_str(value) for key, value in batch.prices.items()},
+        "orders": {
+            order.order_id: order.as_dict()
+            for order in batch.orders
+            if order.is_executed()
+        },
+        "prices": {
+            str(key): decimal_to_str(value) for key, value in batch.prices.items()
+        },
         "amms": {},
     }
     return sample_output
