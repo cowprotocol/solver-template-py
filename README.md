@@ -23,6 +23,12 @@ pip install -r requirements.txt
 python -m src._server
 ```
 
+This can also be run via docker with 
+
+```sh
+docker run -p 8000:8000 gchr.io/cowprotocol/solver-template-py
+```
+
 # Feed an Auction Instance to the Solver
 
 ```shell

@@ -35,7 +35,7 @@ SERVER_ARGS = None
 class ServerSettings(BaseSettings):
     """Basic Server Settings"""
 
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"
     port: int = 8000
 
 
