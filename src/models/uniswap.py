@@ -24,6 +24,8 @@ class Uniswap:
     An Uniswap pool is represented by two token balances.
     """
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(
         self,
         pool_id: str,

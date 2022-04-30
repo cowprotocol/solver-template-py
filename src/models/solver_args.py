@@ -13,6 +13,8 @@ from src.util.schema import MetadataModel
 class SolverArgs:
     """Parameters passed in POST URL"""
 
+    # pylint: disable=too-many-instance-attributes
+
     auction_id: Optional[str]
     instance_name: str
     time_limit: int
