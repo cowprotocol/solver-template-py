@@ -35,7 +35,7 @@ SERVER_ARGS = None
 class ServerSettings(BaseSettings):
     """Basic Server Settings"""
 
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"
     port: int = 8000
 
 
@@ -53,7 +53,7 @@ def health() -> bool:
     return True
 
 
-@app.post("/solve/", response_model=SettledBatchAuctionModel)
+@app.post("/solve", response_model=SettledBatchAuctionModel)
 async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     """API POST solve endpoint handler"""
     logging.debug(f"Received solve request {await request.json()}")

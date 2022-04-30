@@ -1,0 +1,10 @@
+.github
+tests
+data
+.env.sample
+.gitignore
+.pylintrc
+Dockerfile
+LICENSE
+mypy.ini
+README.md
