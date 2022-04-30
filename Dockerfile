@@ -3,9 +3,8 @@ RUN apk add --update gcc libc-dev linux-headers
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+# Only copies requirements.txt and src directory (see .dockerignore)
+COPY . .
 RUN pip install -r requirements.txt
-
-COPY src/ src/
 
 ENTRYPOINT [ "python3", "-m" , "src._server"]
