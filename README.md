@@ -23,10 +23,16 @@ pip install -r requirements.txt
 python -m src._server
 ```
 
+This can also be run via docker with
+
+```sh
+docker run -p 8000:8000 gchr.io/cowprotocol/solver-template-py
+```
+
 # Feed an Auction Instance to the Solver
 
 ```shell
-curl -X POST "http://127.0.0.1:8000/solve/" \
+curl -X POST "http://127.0.0.1:8000/solve" \
   -H  "accept: application/json" \
   -H  "Content-Type: application/json" \
   --data "@data/small_example.json"
@@ -65,7 +71,7 @@ docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprot
 Clone the services project with
 
 ```shell
-git clone https://github.com/cowprotocol/services.git 
+git clone https://github.com/cowprotocol/services.git
 ```
 
 ```shell
