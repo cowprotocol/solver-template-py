@@ -93,8 +93,8 @@ class Order:
         self.cost: Optional[TokenBalance] = cost
 
         # Stuff that isn't part of the constructor parameters.
-        self.exec_buy_amount: Optional[TokenBalance] = None
-        self.exec_sell_amount: Optional[TokenBalance] = None
+        self.exec_buy_amount: Decimal#Optional[TokenBalance] = None
+        self.exec_sell_amount: Decimal#Optional[TokenBalance] = None
 
     @classmethod
     def from_dict(cls, order_id: str, data: OrderSerializedType) -> Order:
@@ -140,10 +140,10 @@ class Order:
             "buy_amount": decimal_to_str(self.buy_amount),
             "allow_partial_fill": self.allow_partial_fill,
             "is_sell_order": self.is_sell_order,
-            "exec_sell_amount": decimal_to_str(self.exec_sell_amount.as_decimal())
+            "exec_sell_amount": decimal_to_str(self.exec_sell_amount)#(self.exec_sell_amount.as_decimal())
             if self.exec_sell_amount is not None
             else "0",
-            "exec_buy_amount": decimal_to_str(self.exec_buy_amount.as_decimal())
+            "exec_buy_amount": decimal_to_str(self.exec_buy_amount)#(self.exec_buy_amount.as_decimal())
             if self.exec_buy_amount is not None
             else "0",
         }
