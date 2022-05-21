@@ -38,7 +38,7 @@ curl -X POST "http://127.0.0.1:8000/solve" \
   --data "@data/small_example.json"
 ```
 
-# Connect to our orderbook:
+# Connect to the orderbook:
 
 Run the driver (auction dispatcher in DryRun mode). Configured to read the orderbook
 from our staging environment on Gnosis Chain. These parameters can be altered
@@ -57,7 +57,7 @@ the [How to Write a Solver Tutorial](https://docs.cow.fi/tutorials/how-to-write-
 
 ```shell
 docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver \
---orderbook-url https://protocol-xdai.dev.gnosisdev.com \
+--orderbook-url https://barn.api.cow.fi/xdai/api \
 --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
 --node-url "https://rpc.xdaichain.com" \
 --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
@@ -65,6 +65,8 @@ docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprot
 --solvers CowDexAg \
 --transaction-strategy DryRun
 ```
+
+Here we have used the orderbook-url for our staging environment on Gnosis Chain (very low traffic) so you can work with your own orders. A complete list of orderbook URLs can be found in a table at the bottom of the services repo [README](https://github.com/cowprotocol/services#solvers)
 
 ## Without Docker
 
@@ -76,7 +78,7 @@ git clone https://github.com/cowprotocol/services.git
 
 ```shell
 cargo run -p solver -- \
-    --orderbook-url https://protocol-xdai.dev.gnosisdev.com \
+    --orderbook-url https://barn.api.cow.fi/xdai/api \
     --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
     --node-url "https://rpc.xdaichain.com" \
     --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
