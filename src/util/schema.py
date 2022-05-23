@@ -366,6 +366,11 @@ class ExecutedAmmModel(AmmModel):
         None, description="AMM settlement data."
     )
 
+class Interaction(BaseModel):
+    """Calldata for an arbitrary smart contract interaction"""
+    target: str
+    value: str
+    call_data: List[int]
 
 class SettledBatchAuctionModel(BaseModel):
     """Settled batch auction data (solution)."""
@@ -382,3 +387,4 @@ class SettledBatchAuctionModel(BaseModel):
         ..., description="Settled price for each token."
     )
     amms: Dict[AmmId, ExecutedAmmModel] = Field(..., description="Executed AMMs.")
+    interaction_data: List[Interaction]

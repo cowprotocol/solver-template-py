@@ -19,7 +19,14 @@ from src.models.token import (
 from src.models.types import NumericType
 from src.models.uniswap import Uniswap, UniswapsSerializedType
 from src.util.enums import Chain
+from src.util.interactions import *
 
+### Gnosis Chain example
+SELL_TOKEN = Token("0xe91d153e0b41518a2ce8dd3d7944fa863463a97d") # DAI
+BUY_TOKEN = Token("0xddafbb505ad214d7b80b1f830fccc89b60fb7a83") # USDC
+TARGET=EXCHANGE_RATE = 1000000000000 # DAI / USDC
+MARKET_MAKER_EOA = "0x2f320142C9e40D7Fd053cFD7Ab844DAE3E7428A8"
+ALLOWANCE_PROXY = "0x799838B32e86b8F2aDF1353321bBD5C24A5BbB09"
 
 class BatchAuction:
     """Class to represent a batch auction."""
@@ -154,6 +161,20 @@ class BatchAuction:
 
     def solve(self) -> None:
         """Solve Batch"""
+        orders = self.orders
+        for order in orders:
+          print("Order: {}".format(order))
+          if order.sell_token == SELL_TOKEN and order.buy_token == BUY_TOKEN and order.sell_amount / order.buy_amount > EXCHANGE_RATE:
+            print("Found matching order")
+            executed_buy_amount = int(order.sell_amount / EXCHANGE_RATE)
+            order.execute(sell_amount_value = order.sell_amount, buy_amount_value = executed_buy_amount)
+            self.prices[order.sell_token] = 1e18
+            self.prices[order.buy_token] = 1e18 * EXCHANGE_RATE
+            self.interaction_data = [
+              out_interaction(MARKET_MAKER_EOA, order.sell_token, order.sell_amount),
+              in_interaction(ALLOWANCE_PROXY, order.buy_token, executed_buy_amount)
+            ]
+            return
 
     #################################
     #  SOLUTION PROCESSING METHODS  #
