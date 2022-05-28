@@ -134,7 +134,7 @@ class BatchAuction:
 
     @property
     def default_ref_token_price(self) -> Decimal:
-        """Price of reference token if not given explicitely.
+        """Price of reference token if not given explicitly.
 
         This price is chosen so that the price of one unit of
         a token with d_t=18 decimals that costs one unit of the
