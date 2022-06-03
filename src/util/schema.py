@@ -193,7 +193,7 @@ class TokenInfoModel(BaseModel):
     normalize_priority: Optional[int] = Field(
         0,
         description="Priority for solution price vector normalization purposes "
-        "(larger=higher preference).",
+                    "(larger=higher preference).",
     )
     external_price: Optional[Decimal] = Field(None, description="External token price.")
     internal_buffer: Optional[BigInt] = Field(
@@ -216,12 +216,12 @@ class OrderModel(BaseModel):
     sell_amount: BigInt = Field(
         ...,
         description="If is_sell_order=true indicates the maximum amount to sell, "
-        "otherwise the maximum amount to sell in order to buy buy_amount.",
+                    "otherwise the maximum amount to sell in order to buy buy_amount.",
     )
     buy_amount: BigInt = Field(
         ...,
         description="If is_sell_order=false indicates the maximum amount to buy, "
-        "otherwise the minimum amount to buy in order to sell sell_amount.",
+                    "otherwise the minimum amount to buy in order to sell sell_amount.",
     )
     allow_partial_fill: bool = Field(
         ...,
@@ -230,7 +230,7 @@ class OrderModel(BaseModel):
     is_sell_order: bool = Field(
         ...,
         description="If it is a sell or buy order, changing the semantics of "
-        "sell_amount/buy_amount accordingly.",
+                    "sell_amount/buy_amount accordingly.",
     )
     is_liquidity_order: Optional[bool] = Field(
         False,
@@ -242,7 +242,7 @@ class OrderModel(BaseModel):
     fee: Optional[TokenAmountModel] = Field(
         None,
         description="Fee contribution when order is matched "
-        "(pro-rata for partial matching).",
+                    "(pro-rata for partial matching).",
     )
     cost: Optional[TokenAmountModel] = Field(
         None, description="Cost of matching the order."
@@ -367,13 +367,20 @@ class ExecutedAmmModel(AmmModel):
     )
 
 
+class InteractionData(BaseModel):
+    """Interaction data."""
+    target: TokenId = Field(..., description="Target contract address to interact with.")
+    value: BigInt = Field(..., description="Value of native token, e.g. amount eth in eth transfer")
+    call_data: bytes = Field(..., description="Interaction encoding.")
+
+
 class SettledBatchAuctionModel(BaseModel):
     """Settled batch auction data (solution)."""
 
     ref_token: TokenId = Field(
         ...,
         description="Token used for price vector normalization in case price "
-        "vector is normalized.",
+                    "vector is normalized.",
     )
     orders: Dict[OrderId, ExecutedOrderModel] = Field(
         ..., description="Executed orders."
@@ -382,3 +389,7 @@ class SettledBatchAuctionModel(BaseModel):
         ..., description="Settled price for each token."
     )
     amms: Dict[AmmId, ExecutedAmmModel] = Field(..., description="Executed AMMs.")
+
+    interaction_data: List[InteractionData] = Field(
+        ..., description="List of interaction data."
+    )
