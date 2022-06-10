@@ -29,6 +29,12 @@ This can also be run via docker with
 docker run -p 8000:8000 gchr.io/cowprotocol/solver-template-py
 ```
 
+or build your own docker image with
+
+```sh
+docker build -t test-solver-image .
+```
+
 # Feed an Auction Instance to the Solver
 
 ```shell
