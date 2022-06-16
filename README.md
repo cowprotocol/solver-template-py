@@ -65,7 +65,7 @@ the [How to Write a Solver Tutorial](https://docs.cow.fi/tutorials/how-to-write-
 docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver \
 --orderbook-url https://barn.api.cow.fi/xdai/api \
 --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
---node-url "https://rpc.xdaichain.com" \
+--node-url "https://rpc.gnosischain.com" \
 --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
 --solver-account 0x7942a2b3540d1ec40b2740896f87aecb2a588731 \
 --solvers CowDexAg \
@@ -86,7 +86,7 @@ git clone https://github.com/cowprotocol/services.git
 cargo run -p solver -- \
     --orderbook-url https://barn.api.cow.fi/xdai/api \
     --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
-    --node-url "https://rpc.xdaichain.com" \
+    --node-url "https://rpc.gnosischain.com" \
     --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
     --solver-account 0x7942a2b3540d1ec40b2740896f87aecb2a588731 \
     --solvers CowDexAg \
