@@ -10,6 +10,7 @@ import logging
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseSettings
 
 from src.models.batch_auction import BatchAuction
@@ -45,6 +46,7 @@ server_settings = ServerSettings()
 
 
 app = FastAPI(title="Batch auction solver")
+app.add_middleware(GZipMiddleware)
 
 
 @app.get("/health", status_code=200)
