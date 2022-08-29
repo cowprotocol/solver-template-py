@@ -112,6 +112,7 @@ class Order:
             "buy_amount",
             "is_sell_order",
             "allow_partial_fill",
+            "is_liquidity_order",
         ]
 
         for attr in required_attributes:
@@ -126,6 +127,7 @@ class Order:
             sell_amount=Decimal(data["sell_amount"]),
             is_sell_order=bool(data["is_sell_order"]),
             allow_partial_fill=bool(data["allow_partial_fill"]),
+            is_liquidity_order=bool(data["is_liquidity_order"]),
             fee=TokenBalance.parse(data.get("fee"), allow_none=True),
             cost=TokenBalance.parse(data.get("cost"), allow_none=True),
         )
