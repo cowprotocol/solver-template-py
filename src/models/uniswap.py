@@ -144,10 +144,10 @@ class Uniswap:
                 f"AMM <{amm_id}>: type <{kind}> is currently not supported!"
             )
             return None
-        
+
         if balance1 == 0  or balance2 ==0:
             return None
-        
+
         return Uniswap(
             pool_id=amm_id,
             balance1=balance1,
