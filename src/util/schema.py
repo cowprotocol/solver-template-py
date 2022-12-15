@@ -345,9 +345,7 @@ class ExecPlanCoordsModel(BaseModel):
 
     sequence: int = Field(..., description="Sequence index.")
     position: int = Field(..., description="Position within the sequence.")
-    internal: Optional[bool] = Field(
-        False, description="Using internal liquidity"
-    )
+    internal: Optional[bool] = Field(False, description="Using internal liquidity")
 
 
 class AmmExecutionModel(BaseModel):
