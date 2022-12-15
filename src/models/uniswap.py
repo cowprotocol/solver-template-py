@@ -145,7 +145,7 @@ class Uniswap:
             )
             return None
 
-        if balance1 == 0  or balance2 ==0:
+        if balance1 == 0 or balance2 == 0:
             return None
 
         return Uniswap(
