@@ -55,6 +55,13 @@ def health() -> bool:
     return True
 
 
+@app.post("/notify", response_model=bool)
+async def notify(request: Request) -> bool:
+    """Print response from notify endpoint."""
+    print(f"Notify request {await request.json()}")
+    return True
+
+
 @app.post("/solve", response_model=SettledBatchAuctionModel)
 async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     """API POST solve endpoint handler"""
