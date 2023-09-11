@@ -10,6 +10,7 @@ class AMMKind(Enum):
     CONSTANT_PRODUCT = "ConstantProduct"
     WEIGHTED_PRODUCT = "WeightedProduct"
     STABLE = "Stable"
+    CONCENTRATED = "Concentrated"
 
     def __str__(self) -> str:
         """Represent as string."""

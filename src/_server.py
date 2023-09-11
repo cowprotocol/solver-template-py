@@ -69,68 +69,18 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     # 1. Solve BatchAuction: update batch_auction with
     # batch.solve()
 
-    sample_output = {
-        "ref_token": batch.ref_token.value,
-        "orders": {order.order_id: order.as_dict() for order in batch.orders},
-        "prices": {
-            "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b": 10658174560450550,
-            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": 1000000000000000000,
-            "0xdac17f958d2ee523a2206206994597c13d831ec7": 314968423380884,
-        },
-        "amms": {
-            "6": {
-                "kind": "ConstantProduct",
-                "reserves": {
-                    "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b": "151047198637918194794625",
-                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "1615731604381456130940",
-                },
-                "fee": "0.003",
-                "cost": {
-                    "amount": "1668264347574664",
-                    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                },
-                "mandatory": False,
-                "id": "6",
-                "execution": [
-                    {
-                        "buy_token": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b",
-                        "exec_buy_amount": 4416092913242591886,
-                        "sell_token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                        "exec_sell_amount": 47095265163205056,
-                        "exec_sell_amount_nfee": 47236971948467672,
-                        "liquidity_fee": 1.3248278739727776e16,
-                        "exec_plan": {"position": 0, "sequence": 0},
-                    }
-                ],
-            },
-            "3": {
-                "kind": "ConstantProduct",
-                "reserves": {
-                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "10052659476364989570713",
-                    "0xdac17f958d2ee523a2206206994597c13d831ec7": "31939939882438",
-                },
-                "fee": "0.003",
-                "cost": {
-                    "amount": "1668264347574664",
-                    "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                },
-                "mandatory": False,
-                "id": "3",
-                "execution": [
-                    {
-                        "buy_token": "0xdac17f958d2ee523a2206206994597c13d831ec7",
-                        "exec_buy_amount": 55272822,
-                        "sell_token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                        "exec_sell_amount": 17344146155103392,
-                        "exec_sell_amount_nfee": 17396335070270996,
-                        "liquidity_fee": 165818.46600000001,
-                        "exec_plan": {"position": 1, "sequence": 0},
-                    }
-                ],
-            },
-        },
+    trivial_solution = {
+        "orders": {},
+        "foreign_liquidity_orders": [],
+        "amms": {},
+        "prices": {},
+        "approvals": [],
+        "interaction_data": [],
+        "score": "0",
     }
-    return sample_output
+
+    print("\n\n*************\n\nReturning solution: " + str(trivial_solution))
+    return trivial_solution
 
 
 # ++++ Server setup: ++++

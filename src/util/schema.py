@@ -278,6 +278,7 @@ class AmmKindEnum(str, Enum):
     CONSTANT_PRODUCT = "ConstantProduct"
     WEIGHTED_PRODUCT = "WeightedProduct"
     STABLE = "Stable"
+    CONCENTRATED = "Concentrated"
 
 
 class ConstantProductReservesModel(BigInt):
@@ -295,10 +296,12 @@ class AmmModel(BaseModel):
     """AMM data."""
 
     kind: AmmKindEnum = Field(..., description="AMM type.")
-    reserves: Dict[
-        TokenId, Union[ConstantProductReservesModel, WeightedProductReservesModel]
-    ] = Field(..., description="AMM tokens and balances.")
-    fee: Decimal = Field(..., description="AMM trading fee (e.g. 0.003 for 0.3% fee).")
+    reserves: Optional[
+        Dict[TokenId, Union[ConstantProductReservesModel, WeightedProductReservesModel]]
+    ] = Field(None, description="AMM tokens and balances.")
+    fee: Optional[Decimal] = Field(
+        None, description="AMM trading fee (e.g. 0.003 for 0.3% fee)."
+    )
     cost: Optional[TokenAmountModel] = Field(
         None, description="Cost of using the pool."
     )
@@ -383,11 +386,6 @@ class InteractionData(BaseModel):
 class SettledBatchAuctionModel(BaseModel):
     """Settled batch auction data (solution)."""
 
-    ref_token: TokenId = Field(
-        ...,
-        description="Token used for price vector normalization in case price "
-        "vector is normalized.",
-    )
     orders: Dict[OrderId, ExecutedOrderModel] = Field(
         ..., description="Executed orders."
     )
