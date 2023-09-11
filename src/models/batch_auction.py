@@ -242,8 +242,6 @@ def load_amms(amms_serialized: UniswapsSerializedType) -> dict[str, Uniswap]:
     """
     amm_list = []
     for amm_id, amm_data in amms_serialized.items():
-        print(amm_data)
-        continue
         amm = Uniswap.from_dict(amm_id, amm_data)
         if amm is not None:
             amm_list.append(amm)
