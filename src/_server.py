@@ -73,8 +73,8 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     print("Received Batch Auction", batch.name)
     print("Parameters Supplied", solver_args)
 
-    # 1. Solve BatchAuction: update batch_auction with
-    # batch.solve()
+    batch.solve()
+    return batch.output
 
     trivial_solution = {
         "orders": {},

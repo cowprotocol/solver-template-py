@@ -5,9 +5,10 @@ Model containing BatchAuction which is what solvers operate on.
 from __future__ import annotations
 import decimal
 import logging
+import math
 from decimal import Decimal
 from typing import Any, Optional
-
+from src.util.numbers import decimal_to_str
 from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
     Token,
@@ -154,6 +155,102 @@ class BatchAuction:
 
     def solve(self) -> None:
         """Solve Batch"""
+
+        """
+            Here we implement a very simple solving algorithm.
+            We only focus on fill-or-kill market sell orders,
+            and we process them one by one and try to match each order
+            against a single Univ2 type AMM. The first one such iteration
+            that succeeds returns.
+        """
+        all_orders = self.orders
+        all_uniswaps = self.uniswaps
+        for order in all_orders:
+            if order.is_sell_order == False:
+                continue
+            if order.is_liquidity_order:
+                continue
+            if order.fee.balance == 0:
+                continue
+            for uniswap in all_uniswaps:
+                found = False
+                fee = 1 - float(uniswap.fee)
+                if (
+                    order.sell_token == uniswap.balance1.token
+                    and order.buy_token == uniswap.balance2.token
+                ):
+                    x0 = uniswap.balance1.balance
+                    y0 = uniswap.balance2.balance
+                    found = True
+                if (
+                    order.sell_token == uniswap.balance2.token
+                    and order.buy_token == uniswap.balance1.token
+                ):
+                    x0 = uniswap.balance2.balance
+                    y0 = uniswap.balance1.balance
+                    found = True
+                if found == False:
+                    continue
+                # Found a matching Uniswap.
+                x = order.sell_amount
+                y = int(
+                    y0 - math.ceil(float(x0) * float(y0) / (float(x0) + fee * float(x)))
+                )
+                y = Decimal(y)
+                if y < order.buy_amount:
+                    continue
+                order.exec_sell_amount = x
+                order.exec_buy_amount = y
+                sell_price = 1000000000000000000
+                buy_price = int((x / y) * sell_price)
+                print("Solved")
+                order_dictionary = {
+                    "sell_token": str(order.sell_token),
+                    "buy_token": str(order.buy_token),
+                    "sell_amount": decimal_to_str(order.sell_amount),
+                    "buy_amount": decimal_to_str(order.buy_amount),
+                    "allow_partial_fill": False,
+                    "is_sell_order": True,
+                    "exec_sell_amount": decimal_to_str(
+                        order.exec_sell_amount
+                    ),  # (self.exec_sell_amount.as_decimal())
+                    "exec_buy_amount": decimal_to_str(
+                        order.exec_buy_amount
+                    ),  # (self.exec_buy_amount.as_decimal())
+                }
+
+                if order.fee is not None:
+                    order_dictionary["fee"] = {
+                        "token": str(order.fee.token),
+                        "amount": decimal_to_str(order.fee.as_decimal()),
+                    }
+
+                if order.cost is not None:
+                    order_dictionary["cost"] = {
+                        "token": str(order.cost.token),
+                        "amount": decimal_to_str(order.cost.as_decimal()),
+                    }
+
+                self.output = {
+                    "ref_token": str(order.sell_token),
+                    "orders": {str(order.order_id): order_dictionary},
+                    "prices": {
+                        str(order.sell_token): 1000000000000000000,
+                        str(order.buy_token): buy_price,
+                    },
+                    "amms": {},
+                }
+                return
+
+        self.output = {
+            "orders": {},
+            "foreign_liquidity_orders": [],
+            "amms": {},
+            "prices": {},
+            "approvals": [],
+            "interaction_data": [],
+            "score": "0",
+        }
 
     #################################
     #  SOLUTION PROCESSING METHODS  #
