@@ -76,7 +76,7 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
         "prices": {},
         "approvals": [],
         "interaction_data": [],
-        "score": "0"
+        "score": "0",
     }
 
     print("\n\n*************\n\nReturning solution: " + str(trivial_solution))

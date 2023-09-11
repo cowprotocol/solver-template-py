@@ -296,10 +296,12 @@ class AmmModel(BaseModel):
     """AMM data."""
 
     kind: AmmKindEnum = Field(..., description="AMM type.")
-    reserves: Optional[Dict[
-        TokenId, Union[ConstantProductReservesModel, WeightedProductReservesModel]
-    ]] = Field(None, description="AMM tokens and balances.")
-    fee: Optional[Decimal] = Field(None, description="AMM trading fee (e.g. 0.003 for 0.3% fee).")
+    reserves: Optional[
+        Dict[TokenId, Union[ConstantProductReservesModel, WeightedProductReservesModel]]
+    ] = Field(None, description="AMM tokens and balances.")
+    fee: Optional[Decimal] = Field(
+        None, description="AMM trading fee (e.g. 0.003 for 0.3% fee)."
+    )
     cost: Optional[TokenAmountModel] = Field(
         None, description="Cost of using the pool."
     )
