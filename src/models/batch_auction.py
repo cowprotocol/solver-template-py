@@ -166,7 +166,7 @@ class BatchAuction:
         all_orders = self.orders
         all_uniswaps = self.uniswaps
         for order in all_orders:
-            if order.is_sell_order == False:
+            if order.is_sell_order is False:
                 continue
             if order.is_liquidity_order:
                 continue
@@ -179,30 +179,35 @@ class BatchAuction:
                     order.sell_token == uniswap.balance1.token
                     and order.buy_token == uniswap.balance2.token
                 ):
-                    x0 = uniswap.balance1.balance
-                    y0 = uniswap.balance2.balance
+                    x_0 = uniswap.balance1.balance
+                    y_0 = uniswap.balance2.balance
                     found = True
                 if (
                     order.sell_token == uniswap.balance2.token
                     and order.buy_token == uniswap.balance1.token
                 ):
-                    x0 = uniswap.balance2.balance
-                    y0 = uniswap.balance1.balance
+                    x_0 = uniswap.balance2.balance
+                    y_0 = uniswap.balance1.balance
                     found = True
-                if found == False:
+                if found is False:
                     continue
                 # Found a matching Uniswap.
-                x = order.sell_amount
-                y = int(
-                    y0 - math.ceil(float(x0) * float(y0) / (float(x0) + fee * float(x)))
+                pool_buy_amount = order.sell_amount
+                pool_sell_amount = int(
+                    y_0
+                    - math.ceil(
+                        float(x_0)
+                        * float(y_0)
+                        / (float(x_0) + fee * float(pool_buy_amount))
+                    )
                 )
-                y = Decimal(y)
-                if y < order.buy_amount:
+                pool_sell_amount = Decimal(pool_sell_amount)
+                if pool_sell_amount < order.buy_amount:
                     continue
-                order.exec_sell_amount = x
-                order.exec_buy_amount = y
+                order.exec_sell_amount = pool_buy_amount
+                order.exec_buy_amount = pool_sell_amount
                 sell_price = 1000000000000000000
-                buy_price = int((x / y) * sell_price)
+                buy_price = int((pool_buy_amount / pool_sell_amount) * sell_price)
                 print("Solved")
                 order_dictionary = {
                     "sell_token": str(order.sell_token),
