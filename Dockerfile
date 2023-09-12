@@ -1,10 +1,15 @@
-FROM python:alpine
+FROM python:3.10-alpine
+
 RUN apk add --update gcc libc-dev linux-headers
 
 WORKDIR /app
 
-# Only copies requirements.txt and src directory (see .dockerignore)
-COPY . .
+# First copy over the requirements.txt and install dependencies, this makes
+# building subsequent images easier.
+COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-ENTRYPOINT [ "python3", "-m" , "src._server"]
+# Copy full source (see .dockerignore)
+COPY . .
+
+CMD [ "python3", "-m" , "src._server"]
