@@ -220,17 +220,19 @@ class BatchAuction:
                 }
                 amm_dictionary = {
                     "kind": "ConstantProduct",
-                    "execution" : [{
-                        "exec_sell_amount": decimal_to_str(order.buy_amount),
-                        "exec_buy_amount": decimal_to_str(order.sell_amount),
-                        "buy_token": str(order.sell_token),
-                        "sell_token": str(order.buy_token),
-                        "exec_plan": {
-                            "sequence": 0,
-                            "position": 0,
-                            "internal": False
+                    "execution": [
+                        {
+                            "exec_sell_amount": decimal_to_str(order.buy_amount),
+                            "exec_buy_amount": decimal_to_str(order.sell_amount),
+                            "buy_token": str(order.sell_token),
+                            "sell_token": str(order.buy_token),
+                            "exec_plan": {
+                                "sequence": 0,
+                                "position": 0,
+                                "internal": False,
+                            },
                         }
-                    }]
+                    ],
                 }
 
                 if order.fee is not None:
