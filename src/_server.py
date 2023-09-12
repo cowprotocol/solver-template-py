@@ -74,20 +74,8 @@ async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
     print("Parameters Supplied", solver_args)
 
     batch.solve()
+    print("\n\n*************\n\nReturning solution: " + str(batch.output))
     return batch.output
-
-    trivial_solution = {
-        "orders": {},
-        "foreign_liquidity_orders": [],
-        "amms": {},
-        "prices": {},
-        "approvals": [],
-        "interaction_data": [],
-        "score": "0",
-    }
-
-    print("\n\n*************\n\nReturning solution: " + str(trivial_solution))
-    return trivial_solution
 
 
 # ++++ Server setup: ++++

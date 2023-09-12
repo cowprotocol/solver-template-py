@@ -218,6 +218,20 @@ class BatchAuction:
                         order.exec_buy_amount
                     ),  # (self.exec_buy_amount.as_decimal())
                 }
+                amm_dictionary = {
+                    "kind": "ConstantProduct",
+                    "execution" : [{
+                        "exec_sell_amount": decimal_to_str(order.buy_amount),
+                        "exec_buy_amount": decimal_to_str(order.sell_amount),
+                        "buy_token": str(order.sell_token),
+                        "sell_token": str(order.buy_token),
+                        "exec_plan": {
+                            "sequence": 0,
+                            "position": 0,
+                            "internal": False
+                        }
+                    }]
+                }
 
                 if order.fee is not None:
                     order_dictionary["fee"] = {
@@ -232,13 +246,15 @@ class BatchAuction:
                     }
 
                 self.output = {
-                    "ref_token": str(order.sell_token),
                     "orders": {str(order.order_id): order_dictionary},
+                    "foreign_liquidity_orders": [],
                     "prices": {
                         str(order.sell_token): 1000000000000000000,
                         str(order.buy_token): buy_price,
                     },
-                    "amms": {},
+                    "amms": {str(uniswap.pool_id): amm_dictionary},
+                    "approvals": [],
+                    "interaction_data": [],
                 }
                 return
 
