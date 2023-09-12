@@ -57,6 +57,7 @@ class BatchAuction:
         self.prices = (
             prices if prices else {ref_token: self._tokens[ref_token].external_price}
         )
+        self.output = None
 
     @classmethod
     def from_dict(cls, data: dict, name: str) -> BatchAuction:
@@ -154,14 +155,12 @@ class BatchAuction:
         return Decimal(10) ** (2 * 18 - self.token_info(self.ref_token).decimals)
 
     def solve(self) -> None:
-        """Solve Batch"""
-
-        """
-            Here we implement a very simple solving algorithm.
-            We only focus on fill-or-kill market sell orders,
-            and we process them one by one and try to match each order
-            against a single Univ2 type AMM. The first one such iteration
-            that succeeds returns.
+        """Solve Batch
+        Here we implement a very simple solving algorithm.
+        We only focus on fill-or-kill market sell orders,
+        and we process them one by one and try to match each order
+        against a single Univ2 type AMM. The first one such iteration
+        that succeeds returns.
         """
         all_orders = self.orders
         all_uniswaps = self.uniswaps
