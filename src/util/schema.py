@@ -251,6 +251,7 @@ class OrderModel(BaseModel):
     class Config:
         """Includes example in generated openapi file"""
 
+        # pylint: disable=too-few-public-methods
         schema_extra = {
             "example": {
                 "sell_token": "0x6b175474e89094c44da98b954eedeac495271d0f",
@@ -329,6 +330,7 @@ class BatchAuctionModel(BaseModel):
     class Config:
         """Includes example in generated openapi file"""
 
+        # pylint: disable=too-few-public-methods
         schema_extra = {"example": example_instance}
 
 

@@ -6,7 +6,7 @@ from decimal import Decimal, getcontext
 from typing import Optional, Union
 
 from src.models.types import NumericType
-from src.util.constants import Constants
+from src.util.constants import DECIMAL_STR_PREC
 
 
 class Token:
@@ -101,7 +101,7 @@ class TokenInfo:
                 "external_price",
                 "internal_buffer",
             ]:
-                value = value.quantize(Constants.DECIMAL_STR_PREC)
+                value = value.quantize(DECIMAL_STR_PREC)
             _str += f"\n-- {attr} : {value}"
 
         return _str
