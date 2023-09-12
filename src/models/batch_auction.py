@@ -7,7 +7,7 @@ import decimal
 import logging
 import math
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 from src.util.numbers import decimal_to_str
 from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
@@ -20,6 +20,7 @@ from src.models.token import (
 from src.models.types import NumericType
 from src.models.uniswap import Uniswap, UniswapsSerializedType
 from src.util.enums import Chain
+from src.models.token import TokenBalance
 
 
 class BatchAuction:
@@ -57,7 +58,7 @@ class BatchAuction:
         self.prices = (
             prices if prices else {ref_token: self._tokens[ref_token].external_price}
         )
-        self.output = None
+        self.output: Dict[Any, Any] = {}
 
     @classmethod
     def from_dict(cls, data: dict, name: str) -> BatchAuction:
@@ -169,6 +170,8 @@ class BatchAuction:
                 continue
             if order.is_liquidity_order:
                 continue
+            if order.fee is None:
+                continue
             if order.fee.balance == 0:
                 continue
             for uniswap in all_uniswaps:
@@ -192,6 +195,7 @@ class BatchAuction:
                     continue
                 # Found a matching Uniswap.
                 pool_buy_amount = order.sell_amount
+                dec_pool_buy_amount = Decimal(pool_buy_amount)
                 pool_sell_amount = int(
                     y_0
                     - math.ceil(
@@ -200,11 +204,15 @@ class BatchAuction:
                         / (float(x_0) + fee * float(pool_buy_amount))
                     )
                 )
-                pool_sell_amount = Decimal(pool_sell_amount)
-                if pool_sell_amount < order.buy_amount:
+                dec_pool_sell_amount = Decimal(pool_sell_amount)
+                if dec_pool_sell_amount < order.buy_amount:
                     continue
-                order.exec_sell_amount = pool_buy_amount
-                order.exec_buy_amount = pool_sell_amount
+                order.exec_sell_amount = TokenBalance(
+                    dec_pool_buy_amount, order.sell_token
+                )
+                order.exec_buy_amount = TokenBalance(
+                    dec_pool_sell_amount, order.buy_token
+                )
                 sell_price = 1000000000000000000
                 buy_price = int((pool_buy_amount / pool_sell_amount) * sell_price)
                 print("Solved")
@@ -216,10 +224,10 @@ class BatchAuction:
                     "allow_partial_fill": False,
                     "is_sell_order": True,
                     "exec_sell_amount": decimal_to_str(
-                        order.exec_sell_amount
+                        order.exec_sell_amount.as_decimal()
                     ),  # (self.exec_sell_amount.as_decimal())
                     "exec_buy_amount": decimal_to_str(
-                        order.exec_buy_amount
+                        order.exec_buy_amount.as_decimal()
                     ),  # (self.exec_buy_amount.as_decimal())
                 }
                 amm_dictionary = {
