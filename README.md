@@ -12,7 +12,7 @@ git clone git@github.com:cowprotocol/solver-template-py.git
 2. Rust v1.60.0 or Docker
 
 ```sh
-python3 -m venv venv
+python3.10 -m venv venv
 source ./venv/bin/activate
 pip install -r requirements.txt
 ```
