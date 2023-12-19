@@ -1,124 +1,60 @@
 """
 This is the project's Entry point.
 """
-from __future__ import annotations
 
-import argparse
-import decimal
 import logging
-
+from typing import Any
 import uvicorn
-from dotenv import load_dotenv
-from fastapi import FastAPI, Request
-from fastapi.middleware.gzip import GZipMiddleware
-from pydantic import BaseSettings
+from fastapi import FastAPI
 
-from src.models.batch_auction import BatchAuction
-from src.models.solver_args import SolverArgs
-from src.util.schema import (
-    BatchAuctionModel,
-    SettledBatchAuctionModel,
-)
+# from src.models.solve_model import Auction, Solution
 
-# Set decimal precision.
-decimal.getcontext().prec = 100
-
-# Holds parameters passed on the command line when invoking the server.
-# These will be merged with request solver parameters
-SERVER_ARGS = None
-
-
-# ++++ Interface definition ++++
-
-
-# Server settings: Can be overridden by passing them as env vars or in a .env file.
-# Example: PORT=8001 python -m src._server
-class ServerSettings(BaseSettings):
-    """Basic Server Settings"""
-
-    host: str = "0.0.0.0"
-    port: int = 8000
-
-
-server_settings = ServerSettings()
+logging.basicConfig(level=logging.DEBUG)
 
 # ++++ Endpoints: ++++
 
-
 app = FastAPI(title="Batch auction solver")
-app.add_middleware(GZipMiddleware)
-
-
-@app.get("/health", status_code=200)
-def health() -> bool:
-    """Convenience endpoint to check if server is alive."""
-    return True
 
 
 @app.post("/notify", response_model=bool)
-async def notify(request: Request) -> bool:
+async def notify(notification: dict[str, Any]) -> bool:
     """Print response from notify endpoint."""
-    print(f"Notify request {await request.json()}")
+    logging.debug(f"Notification: {notification}")
     return True
 
 
-@app.post("/solve", response_model=SettledBatchAuctionModel)
-async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
+# @app.post("/solve", response_model=Solution)
+# async def solve(auction: Auction, request: Request):  # type: ignore
+@app.post("/solve")
+async def solve(auction: dict[str, Any]) -> dict[str, Any]:
     """API POST solve endpoint handler"""
-    logging.debug(f"Received solve request {await request.json()}")
-    solver_args = SolverArgs.from_request(request=request, meta=problem.metadata)
+    logging.debug(f"Received solve request: {auction}")
 
-    batch = BatchAuction.from_dict(problem.dict(), solver_args.instance_name)
+    # 1. Solve Auction
+    # (add code)
 
-    print("Received Batch Auction", batch.name)
-    print("Parameters Supplied", solver_args)
-
-    # 1. Solve BatchAuction: update batch_auction with
-    # batch.solve()
-
-    trivial_solution = {
-        "orders": {},
-        "foreign_liquidity_orders": [],
-        "amms": {},
+    solution = {
+        "id": "123",
+        "trades": [],
         "prices": {},
-        "approvals": [],
-        "interaction_data": [],
+        "interactions": [],
+        "solver": "solvertemplate",
         "score": "0",
+        "weth": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
     }
 
-    print("\n\n*************\n\nReturning solution: " + str(trivial_solution))
-    return trivial_solution
+    logging.debug(f"Returning solution: {solution}")
+
+    # return Solution(**solution)
+    return solution
 
 
 # ++++ Server setup: ++++
 
 
 if __name__ == "__main__":
-    load_dotenv()
-
-    parser = argparse.ArgumentParser(
-        fromfile_prefix_chars="@",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    # TODO - enable flag to write files to persistent storage
-    # parser.add_argument(
-    #     "--write_auxiliary_files",
-    #     type=bool,
-    #     default=False,
-    #     help="Write auxiliary instance and optimization files, or not.",
-    # )
-
-    parser.add_argument(
-        "--log-level",
-        type=str,
-        default="info",
-        help="Log level",
-    )
-
-    SERVER_ARGS = parser.parse_args()
     uvicorn.run(
         "__main__:app",
-        host=server_settings.host,
-        port=server_settings.port,
-        log_level=SERVER_ARGS.log_level,
+        host="0.0.0.0",
+        port=8000,
     )
