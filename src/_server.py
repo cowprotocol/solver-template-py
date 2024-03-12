@@ -6,19 +6,14 @@ from __future__ import annotations
 import argparse
 import decimal
 import logging
-
+from typing import Any
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseSettings
 
-from src.models.batch_auction import BatchAuction
 from src.models.solver_args import SolverArgs
-from src.util.schema import (
-    BatchAuctionModel,
-    SettledBatchAuctionModel,
-)
 
 # Set decimal precision.
 decimal.getcontext().prec = 100
@@ -62,31 +57,56 @@ async def notify(request: Request) -> bool:
     return True
 
 
-@app.post("/solve", response_model=SettledBatchAuctionModel)
-async def solve(problem: BatchAuctionModel, request: Request):  # type: ignore
+@app.post("/solve")
+async def solve(problem: dict, request: Request):  # type: ignore
     """API POST solve endpoint handler"""
     logging.debug(f"Received solve request {await request.json()}")
-    solver_args = SolverArgs.from_request(request=request, meta=problem.metadata)
-
-    batch = BatchAuction.from_dict(problem.dict(), solver_args.instance_name)
-
-    print("Received Batch Auction", batch.name)
-    print("Parameters Supplied", solver_args)
-
-    # 1. Solve BatchAuction: update batch_auction with
-    # batch.solve()
-
+    #return
     trivial_solution = {
-        "orders": {},
-        "foreign_liquidity_orders": [],
-        "amms": {},
-        "prices": {},
-        "approvals": [],
-        "interaction_data": [],
-        "score": "0",
+        "solutions": []
     }
-
-    print("\n\n*************\n\nReturning solution: " + str(trivial_solution))
+    gas_price = int(problem['effectiveGasPrice'])
+    orders = problem['orders']
+    found_solution = False
+    for o in orders:
+        if o['sellToken'] == o['buyToken']:
+            found_solution = True
+            break
+    if not found_solution:
+        print("\n\n*************\n\nReturning solution: " + str(trivial_solution))
+        return trivial_solution
+    
+    gas_cost = 150000 * gas_price
+    token = o['sellToken']
+    sell_amount = int(o['sellAmount'])
+    buy_amount = int(o['buyAmount'])
+    tokens = problem['tokens']
+    native_price = int(tokens[token]['referencePrice'])
+    fee_in_sell = int(gas_cost * 10**18 / native_price)
+    if sell_amount - fee_in_sell > buy_amount:
+        solution = {
+            'solutions': [ 
+                {
+                    'id': 0,
+                    'prices': {token: '1'},
+                    'trades': [
+                        {
+                            'kind': 'fulfillment',
+                            'order': o['uid'],
+                            'fee': str(fee_in_sell),
+                            'executedAmount': str(sell_amount - fee_in_sell)
+                        }
+                    ],
+                    'interactions': [],
+                    'score': {
+                        'kind': 'solver',
+                        'score': str((sell_amount - fee_in_sell - buy_amount) * native_price // 10**18)
+                    }
+                }
+            ]
+        }
+        print("\n\n*************\n\nReturning solution: " + str(solution))
+        return solution
     return trivial_solution
 
 
