@@ -41,3 +41,5 @@ class SolverArgs:
             # Both: Prioritize query params over metadata.
             auction_id=param_dict.get("auction_id", meta.auction_id),
         )
+
+

@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from src.models.order import Order, OrdersSerializedType
+from src.models.order import Order, OrderMatchType
 from src.models.token import (
     Token,
     TokenInfo,
@@ -154,6 +155,27 @@ class BatchAuction:
 
     def solve(self) -> None:
         """Solve Batch"""
+        orders = self.orders
+        print("in solve",len(orders))
+        for i in range(len(orders)-1):
+            print("in solve",i)
+            for j in range(i+1,len(orders)):
+                print("in solve",len(orders))
+                order_i, order_j = orders[i], orders[j]
+                if order_i.match_type(order_j) == OrderMatchType.BOTH_FILLED:
+                    order_i.execute(
+                        buy_amount_value=order_j.sell_amount,
+                        sell_amount_value=order_j.buy_amount
+                    )
+                    order_j.execute(
+                        buy_amount_value=order_i.sell_amount,
+                        sell_amount_value=order_i.buy_amount
+                    )
+                    token_a = self.token_info(order_i.sell_token)
+                    token_b = self.token_info(order_i.buy_token)
+                    self.prices[token_a.token] = order_j.sell_amount
+                    self.prices[token_b.token] = order_i.sell_amount
+                    return
 
     #################################
     #  SOLUTION PROCESSING METHODS  #
@@ -186,6 +208,10 @@ class BatchAuction:
         """Print batch auction data."""
         return self.name
 
+def update_batch_with_best_rates(batch: BatchAuction, best_rates):
+    for rate in best_rates:
+        order = batch.orders[rate['order_id']]
+        order.update_rate(rate['new_sell_amount'], rate['new_buy_amount'])
 
 def load_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     """Store some basic metadata information."""

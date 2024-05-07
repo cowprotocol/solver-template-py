@@ -53,7 +53,7 @@
       "sell_token": "0x177127622c4a00f3d409b75571e12cb3c8973d3c",
       "buy_token": "0x6a023ccd1ff6f2045c3309768ead9e68f978f6e1",
       "sell_amount": "100000000000000000000",
-      "buy_amount": "10000000000000000000",
+      "buy_amount": "12000000000000000000",
       "allow_partial_fill": false,
       "is_sell_order": true,
       "fee": {
