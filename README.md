@@ -1,3 +1,6 @@
+> [!WARNING]  
+> This repository is outdated and does not currently function as a basis for implementing a solver.
+
 # Setup Project
 
 Clone this repository
