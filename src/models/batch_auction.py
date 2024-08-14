@@ -5,9 +5,10 @@ Model containing BatchAuction which is what solvers operate on.
 from __future__ import annotations
 import decimal
 import logging
+import math
 from decimal import Decimal
-from typing import Any, Optional
-
+from typing import Any, Optional, Dict
+from src.util.numbers import decimal_to_str
 from src.models.order import Order, OrdersSerializedType
 from src.models.token import (
     Token,
@@ -19,6 +20,7 @@ from src.models.token import (
 from src.models.types import NumericType
 from src.models.uniswap import Uniswap, UniswapsSerializedType
 from src.util.enums import Chain
+from src.models.token import TokenBalance
 
 
 class BatchAuction:
@@ -56,6 +58,7 @@ class BatchAuction:
         self.prices = (
             prices if prices else {ref_token: self._tokens[ref_token].external_price}
         )
+        self.output: Dict[Any, Any] = {}
 
     @classmethod
     def from_dict(cls, data: dict, name: str) -> BatchAuction:
@@ -153,7 +156,131 @@ class BatchAuction:
         return Decimal(10) ** (2 * 18 - self.token_info(self.ref_token).decimals)
 
     def solve(self) -> None:
-        """Solve Batch"""
+        """Solve Batch
+        Here we implement a very simple solving algorithm.
+        We only focus on fill-or-kill market sell orders,
+        and we process them one by one and try to match each order
+        against a single Univ2 type AMM. The first one such iteration
+        that succeeds returns.
+        """
+        all_orders = self.orders
+        all_uniswaps = self.uniswaps
+        for order in all_orders:
+            if order.is_sell_order is False:
+                continue
+            if order.is_liquidity_order:
+                continue
+            if order.fee is None:
+                continue
+            if order.fee.balance == 0:
+                continue
+            for uniswap in all_uniswaps:
+                found = False
+                fee = 1 - float(uniswap.fee)
+                if (
+                    order.sell_token == uniswap.balance1.token
+                    and order.buy_token == uniswap.balance2.token
+                ):
+                    x_0 = uniswap.balance1.balance
+                    y_0 = uniswap.balance2.balance
+                    found = True
+                if (
+                    order.sell_token == uniswap.balance2.token
+                    and order.buy_token == uniswap.balance1.token
+                ):
+                    x_0 = uniswap.balance2.balance
+                    y_0 = uniswap.balance1.balance
+                    found = True
+                if found is False:
+                    continue
+                # Found a matching Uniswap.
+                pool_buy_amount = order.sell_amount
+                dec_pool_buy_amount = Decimal(pool_buy_amount)
+                pool_sell_amount = int(
+                    y_0
+                    - math.ceil(
+                        float(x_0)
+                        * float(y_0)
+                        / (float(x_0) + fee * float(pool_buy_amount))
+                    )
+                )
+                dec_pool_sell_amount = Decimal(pool_sell_amount)
+                if dec_pool_sell_amount < order.buy_amount:
+                    continue
+                order.exec_sell_amount = TokenBalance(
+                    dec_pool_buy_amount, order.sell_token
+                )
+                order.exec_buy_amount = TokenBalance(
+                    dec_pool_sell_amount, order.buy_token
+                )
+                sell_price = 1000000000000000000
+                buy_price = int((pool_buy_amount / pool_sell_amount) * sell_price)
+                print("Solved")
+                order_dictionary = {
+                    "sell_token": str(order.sell_token),
+                    "buy_token": str(order.buy_token),
+                    "sell_amount": decimal_to_str(order.sell_amount),
+                    "buy_amount": decimal_to_str(order.buy_amount),
+                    "allow_partial_fill": False,
+                    "is_sell_order": True,
+                    "exec_sell_amount": decimal_to_str(
+                        order.exec_sell_amount.as_decimal()
+                    ),  # (self.exec_sell_amount.as_decimal())
+                    "exec_buy_amount": decimal_to_str(
+                        order.exec_buy_amount.as_decimal()
+                    ),  # (self.exec_buy_amount.as_decimal())
+                }
+                amm_dictionary = {
+                    "kind": "ConstantProduct",
+                    "execution": [
+                        {
+                            "exec_sell_amount": decimal_to_str(order.buy_amount),
+                            "exec_buy_amount": decimal_to_str(order.sell_amount),
+                            "buy_token": str(order.sell_token),
+                            "sell_token": str(order.buy_token),
+                            "exec_plan": {
+                                "sequence": 0,
+                                "position": 0,
+                                "internal": False,
+                            },
+                        }
+                    ],
+                }
+
+                if order.fee is not None:
+                    order_dictionary["fee"] = {
+                        "token": str(order.fee.token),
+                        "amount": decimal_to_str(order.fee.as_decimal()),
+                    }
+
+                if order.cost is not None:
+                    order_dictionary["cost"] = {
+                        "token": str(order.cost.token),
+                        "amount": decimal_to_str(order.cost.as_decimal()),
+                    }
+
+                self.output = {
+                    "orders": {str(order.order_id): order_dictionary},
+                    "foreign_liquidity_orders": [],
+                    "prices": {
+                        str(order.sell_token): 1000000000000000000,
+                        str(order.buy_token): buy_price,
+                    },
+                    "amms": {str(uniswap.pool_id): amm_dictionary},
+                    "approvals": [],
+                    "interaction_data": [],
+                }
+                return
+
+        self.output = {
+            "orders": {},
+            "foreign_liquidity_orders": [],
+            "amms": {},
+            "prices": {},
+            "approvals": [],
+            "interaction_data": [],
+            "score": "0",
+        }
 
     #################################
     #  SOLUTION PROCESSING METHODS  #
