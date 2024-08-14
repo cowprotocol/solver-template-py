@@ -1,8 +1,4 @@
-FROM python:3.10-alpine
-
-RUN apk add --update gcc libc-dev linux-headers
-
-WORKDIR /app
+FROM python:3.11-alpine
 
 # First copy over the requirements.txt and install dependencies, this makes
 # building subsequent images easier.
