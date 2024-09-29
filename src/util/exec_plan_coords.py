@@ -2,12 +2,14 @@
 
 
 class ExecPlanCoords:
-    """The position coordinates of the uniswap in the execution plan.
+    """The position coordinates of the AMM in the execution plan.
 
     The position is defined by a pair of integers:
         * Id of the sequence.
         * Position within that sequence.
     """
+
+    # pylint: disable=too-few-public-methods
 
     def __init__(self, sequence: int, position: int):
         self.sequence = sequence
