@@ -1,0 +1,3 @@
+"""
+MySolver engine implementation.
+"""

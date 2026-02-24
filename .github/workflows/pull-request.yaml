@@ -2,28 +2,35 @@ name: pull request
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python 3.10
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.11
+        id: setup-python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      - name: Install Requirements
-        run:
-          pip install -r requirements.txt
+          python-version: "3.11"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install --no-interaction
       - name: Lint
-        run:
-          pylint src/
+        run: poetry run pylint src/
       - name: Format
-        run:
-          black --check ./
+        run: poetry run black --check ./
       - name: Type Check
-        run:
-          mypy src --strict
+        run: poetry run mypy src --strict
       - name: Unit Tests
-        run:
-           python -m pytest tests/unit
+        run: poetry run python -m pytest src/tests/ -v

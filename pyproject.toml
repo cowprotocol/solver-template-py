@@ -1,0 +1,85 @@
+[tool.poetry]
+name = "cowprotocol-solver-template-py"
+version = "1.0.0"
+description = "A Python template for implementing CoW Protocol solvers"
+authors = ["CoW Protocol <contact@cow.fi>"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.0.0"
+python-dotenv = "^1.0.0"
+typer = "^0.9.0"
+prometheus-client = "^0.19.0"
+web3 = "^6.15.0"
+eth-typing = "^3.5.0"
+eth-utils = "^4.0.0"
+eth-abi = "^4.2.0"
+hexbytes = "^0.3.0"
+networkx = "^3.2.0"
+scipy = "^1.11.0"
+makefun = "^1.13.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.1.0"
+black = "^22.0.0"
+pylint = "^2.13.0"
+mypy = "^0.940"
+httpx = "^0.24.0"
+
+[tool.poetry.scripts]
+cow-solver = "src.infra.cli:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pylint.master]
+disable = "fixme,too-few-public-methods,too-many-instance-attributes,too-many-arguments,logging-fstring-interpolation,too-many-locals,duplicate-code"
+extension-pkg-allow-list = "pydantic"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "uvicorn.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "fastapi"
+implicit_reexport = true
+
+[tool.pytest.ini_options]
+testpaths = ["src/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

@@ -1,0 +1,3 @@
+"""
+Baseline solver engine implementation.
+"""

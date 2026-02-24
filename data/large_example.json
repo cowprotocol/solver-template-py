@@ -143,7 +143,7 @@
     "0x86ed939b500e121c0c5f493f399084db596dad20": {
       "decimals": 18,
       "alias": "SPC",
-      "external_price": 4.1261511215831115e-06,
+      "external_price": 4.1261511215831115e-6,
       "normalize_priority": 0,
       "internal_buffer": "32914340028683757797937"
     },
@@ -631,7 +631,7 @@
       "kind": "ConstantProduct",
       "reserves": {
         "0x6b175474e89094c44da98b954eedeac495271d0f": "84903768350604287941150958",
-        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "18233677073990818080605"
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "18233677073990818085605"
       },
       "fee": "0.003",
       "cost": {

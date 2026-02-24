@@ -13,21 +13,21 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - uses: docker/login-action@v1
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
           labels: |
             org.opencontainers.image.licenses=MIT OR Apache-2.0
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile

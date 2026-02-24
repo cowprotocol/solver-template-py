@@ -1,113 +1,198 @@
 > [!WARNING]  
 > This repository is outdated and does not currently function as a basis for implementing a solver.
 
-# Setup Project
+# CoW Protocol Solver Template (Python)
 
-Clone this repository
+A Python template for implementing CoW Protocol solvers. This template provides a basic structure and examples for building solvers that can participate in CoW Protocol auctions.
 
-```sh
-git clone git@github.com:cowprotocol/solver-template-py.git
+## Quick Start
+
+🚀 **New to CoW Protocol solvers?** Start with our [Quick Start Guide](QUICKSTART.md) to get a complete solver stack running against the Barn API.
+
+The Quick Start guide covers:
+- Setting up the complete solver infrastructure (Autopilot + Driver + Python Solver)
+- Connecting to CoW Protocol's staging environment
+- Running your first solver against live auction data
+
+## Overview
+
+This template provides a modular, production-ready foundation for building CoW Protocol solvers with:
+
+- **Multiple Engine Support**: Baseline and custom solver implementations
+- **FastAPI Integration**: RESTful API with health checks and metrics
+- **Modular Architecture**: Clean separation of concerns
+- **Comprehensive Testing**: Full test suite with configuration validation
+- **Development Tools**: Makefile with common development commands
+
+## Prerequisites
+
+- **Python 3.11+** — [Installation guide](https://www.python.org/downloads/)
+- **Poetry** — [Installation guide](https://python-poetry.org/docs/#installation) (Python dependency management)
+- **Rust v1.60.0+** — [Installation guide](https://www.rust-lang.org/tools/install) (for connecting to the driver)
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/cowprotocol/solver-template-py.git
+cd solver-template-py
+
+# Install dependencies
+poetry install
+
+# Verify installation
+poetry run python -c "from src.infra.settings import settings; print('✅ Config OK:', settings.solver.chain_id)"
 ```
 
-## Install Requirements
+## Usage
 
-1. Python 3.10 (or probably also 3.9)
-2. Rust v1.60.0 or Docker
+### Start the Solver Server
 
-```sh
-python3.10 -m venv venv
-source ./venv/bin/activate
-pip install -r requirements.txt
+```bash
+# Using Makefile (Recommended)
+make run
+
+# Or manually
+poetry run python -m src.infra.cli run
 ```
 
-# Run Solver Server
+The solver will start on `http://localhost:8080` with the following endpoints:
+- `GET /` - Root endpoint with service information
+- `GET /healthz` - Health check
+- `GET /metrics` - Prometheus metrics
+- `POST /baseline/solve` - Baseline solver engine
+- `POST /mysolver/solve` - MySolver engine (stub implementation)
+- `POST /solve` - Default solver (configurable via DEFAULT_SOLVER_ROUTE)
 
-```shell
-python -m src._server
-```
+### Test the Solver
 
-This can also be run via docker with
+```bash
+# Health check
+curl http://localhost:8080/healthz
 
-```sh
-docker run -p 8000:8000 gchr.io/cowprotocol/solver-template-py
-```
+# Test baseline solver
+curl -X POST "http://127.0.0.1:8080/baseline/solve" \
+  -H "Content-Type: application/json" \
+  --data "@data/small_example.json"
 
-or build your own docker image with
-
-```sh
-docker build -t test-solver-image .
-```
-
-# Feed an Auction Instance to the Solver
-
-```shell
-curl -X POST "http://127.0.0.1:8000/solve" \
-  -H  "accept: application/json" \
-  -H  "Content-Type: application/json" \
+# Test custom solver
+curl -X POST "http://127.0.0.1:8080/mysolver/solve" \
+  -H "Content-Type: application/json" \
   --data "@data/small_example.json"
 ```
 
-# Connect to the orderbook:
+## Development
 
-Run the driver (auction dispatcher in DryRun mode). Configured to read the orderbook
-from our staging environment on Gnosis Chain. These parameters can be altered
-in [.env](.env)
+### Available Commands
 
-## With Docker
+```bash
+# Show all available commands
+make help
 
-If you have docker installed then you can run this.
+# Start the solver server
+make run
 
-```shell
-docker run -it --rm --env-file .env --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver
+# Format code with black
+make format
+
+# Run all tests
+make test
+
+# Install dependencies
+make install
+
+# Clean up temporary files
+make clean
 ```
 
-or without an env file (as described in
-the [How to Write a Solver Tutorial](https://docs.cow.fi/tutorials/how-to-write-a-solver))
+### Manual Commands
 
-```shell
-docker run -it --rm --add-host host.docker.internal:host-gateway ghcr.io/cowprotocol/services solver \
---orderbook-url https://barn.api.cow.fi/xdai/api \
---base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
---node-url "https://rpc.gnosischain.com" \
---cow-dex-ag-solver-url "http://127.0.0.1:8000" \
---solver-account 0x7942a2b3540d1ec40b2740896f87aecb2a588731 \
---solvers CowDexAg \
---transaction-strategy DryRun
+```bash
+# Start server
+poetry run python -m src.infra.cli run --host 0.0.0.0 --port 8080
+
+# Format code
+poetry run black src/ --line-length 88
+
+# Run tests
+poetry run pytest src/tests/ -v
+
+# Show configuration
+poetry run python -m src.infra.cli config
 ```
 
-Here we have used the orderbook-url for our staging environment on Gnosis Chain (very low traffic) so you can work with your own orders. A complete list of orderbook URLs can be found in a table at the bottom of the services repo [README](https://github.com/cowprotocol/services#solvers)
+### Testing
 
-## Without Docker
+```bash
+# Run all tests
+poetry run pytest src/tests/
 
-Clone the services project with
+# Run specific test categories
+poetry run pytest src/tests/test_config.py -v
+poetry run pytest src/tests/test_api_health_metrics.py -v
 
-```shell
-git clone https://github.com/cowprotocol/services.git
+# Run with coverage
+poetry run pytest src/tests/ --cov=src
 ```
 
-```shell
-cargo run -p solver -- \
-    --orderbook-url https://barn.api.cow.fi/xdai/api \
-    --base-tokens 0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83 \
-    --node-url "https://rpc.gnosischain.com" \
-    --cow-dex-ag-solver-url "http://127.0.0.1:8000" \
-    --solver-account 0x7942a2b3540d1ec40b2740896f87aecb2a588731 \
-    --solvers CowDexAg \
-    --transaction-strategy DryRun \
-    --log-filter=info,solver=debug
+## Architecture
+
+The solver follows a clean, modular architecture:
+
+```
+src/
+├── domain/          # Business models (auction, order, solution, liquidity)
+├── engines/         # Solver implementations (baseline, custom)
+├── api/            # FastAPI endpoints and routing
+├── infra/          # Configuration, logging, metrics
+├── utils/          # Shared utilities (math, serialization)
+└── tests/          # Test suite
 ```
 
-# Place an order
+### Key Components
 
-Navigate to [barn.cowswap.exchange/](https://barn.cowswap.exchange/#/swap) and place a
-tiny (real) order. See your driver pick it up and include it in the next auction being
-sent to your solver
+- **API Layer**: FastAPI application with separate routers for each engine
+- **Domain Layer**: Business models and logic (auction, solution, order, etc.)
+- **Engine Layer**: Pluggable solver implementations (baseline, custom)
+- **Infrastructure Layer**: Configuration, logging, metrics, and dependency injection
+- **Utils Layer**: Shared utilities for math, serialization, and data conversion
 
-# References
+## Implementation Guide
 
-- How to Build a Solver: https://docs.cow.fi/tutorials/how-to-write-a-solver
-- In Depth Solver
-  Specification: https://docs.cow.fi/off-chain-services/in-depth-solver-specification
-- Settlement Contract (namely the settle
-  method): https://github.com/cowprotocol/contracts/blob/ff6fb7cad7787b8d43a6468809cacb799601a10e/src/contracts/GPv2Settlement.sol#L121-L143
-- Interaction Model (Currently missing from this framework): https://github.com/cowprotocol/services/blob/cda5e36db34c55e7bf9eb4ea8b6e36ecb046f2b2/crates/shared/src/http_solver/model.rs#L125-L130
+1. **Understand the Models**: Start by examining the domain models in `src/domain/`
+2. **Study Engine Architecture**: Check `src/engines/base.py` for the engine protocol
+3. **Implement Custom Solver**: Modify `src/engines/mysolver/engine.py` to implement your solver logic
+4. **Add Pathfinding**: Implement algorithms to find optimal trading paths
+5. **Handle AMMs**: Add support for different AMM protocols
+6. **Optimize**: Implement price optimization and MEV protection
+7. **Test**: Use the test suite in `src/tests/` to validate your implementation
+
+## Schema Compatibility
+
+This template uses the schema:
+- **Input**: `Auction` model with proper field aliases
+- **Output**: `Solutions` model matching the protocol specification
+- **Field Names**: Uses Python snake_case with automatic camelCase JSON conversion
+
+## Non-Production Ready Parts
+
+This template contains areas marked with `TODO:` comments that indicate non-production ready implementations. These are simplified or stub implementations that need to be replaced with proper production code.
+
+## Integration with CoW Protocol
+
+For complete integration with the CoW Protocol ecosystem, see our [Quick Start Guide](QUICKSTART.md) which covers:
+
+- Setting up the complete solver
+- Connecting to the Barn API (staging environment)
+- Running the autopilot and driver components
+- Testing with live auction data
+
+## References
+
+- [CoW Protocol Solvers Tutorial](https://docs.cow.fi/cow-protocol/tutorials/solvers)
+- [Settlement Contract](https://github.com/cowprotocol/contracts/blob/ff6fb7cad7787b8d43a6468809cacb799601a10e/src/contracts/GPv2Settlement.sol#L121-L143)
+- [Interaction Model](https://github.com/cowprotocol/services/blob/cda5e36db34c55e7bf9eb4ea8b6e36ecb046f2b2/crates/shared/src/http_solver/model.rs#L125-L130)
+
+## Contributing
+
+Please feel free to submit issues and pull requests to improve the template for the community.
